@@ -24,13 +24,11 @@ import org.apache.shardingsphere.sql.parser.sql.statement.ddl.AlterTableStatemen
 
 /**
  * Drop column definition filler.
- *
- * @author duhongjun
  */
 public final class DropColumnDefinitionFiller implements SQLSegmentFiller<DropColumnDefinitionSegment> {
     
     @Override
     public void fill(final DropColumnDefinitionSegment sqlSegment, final SQLStatement sqlStatement) {
-        ((AlterTableStatement) sqlStatement).getDroppedColumnNames().add(sqlSegment.getColumnName());
+        ((AlterTableStatement) sqlStatement).getDroppedColumnNames().addAll(sqlSegment.getColumnNames());
     }
 }

@@ -18,16 +18,18 @@
 package org.apache.shardingsphere.sql.parser;
 
 import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 import org.apache.shardingsphere.sql.parser.api.SQLParser;
-import org.apache.shardingsphere.sql.parser.api.SQLVisitor;
 import org.apache.shardingsphere.sql.parser.autogen.PostgreSQLStatementLexer;
 import org.apache.shardingsphere.sql.parser.spi.SQLParserEntry;
+import org.apache.shardingsphere.sql.parser.visitor.impl.PostgreSQLDALVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.PostgreSQLDCLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.PostgreSQLDDLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.PostgreSQLDMLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.PostgreSQLTCLVisitor;
 
 /**
  * SQL parser entry for PostgreSQL.
- *
- * @author zhangliang
- * @author panjuan
  */
 public final class PostgreSQLParserEntry implements SQLParserEntry {
     
@@ -47,7 +49,19 @@ public final class PostgreSQLParserEntry implements SQLParserEntry {
     }
     
     @Override
-    public Class<? extends SQLVisitor> getVisitorClass() {
-        return PostgreSQLVisitor.class;
+    public Class<? extends ParseTreeVisitor> getVisitorClass(final String visitorName) {
+        if (PostgreSQLDMLVisitor.class.getSimpleName().contains(visitorName)) {
+            return PostgreSQLDMLVisitor.class;
+        }
+        if (PostgreSQLDDLVisitor.class.getSimpleName().contains(visitorName)) {
+            return PostgreSQLDDLVisitor.class;
+        }
+        if (PostgreSQLTCLVisitor.class.getSimpleName().contains(visitorName)) {
+            return PostgreSQLTCLVisitor.class;
+        }
+        if (PostgreSQLDCLVisitor.class.getSimpleName().contains(visitorName)) {
+            return PostgreSQLDCLVisitor.class;
+        }
+        return PostgreSQLDALVisitor.class;
     }
 }

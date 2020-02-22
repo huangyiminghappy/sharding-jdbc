@@ -18,16 +18,18 @@
 package org.apache.shardingsphere.sql.parser;
 
 import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 import org.apache.shardingsphere.sql.parser.api.SQLParser;
-import org.apache.shardingsphere.sql.parser.api.SQLVisitor;
 import org.apache.shardingsphere.sql.parser.autogen.MySQLStatementLexer;
 import org.apache.shardingsphere.sql.parser.spi.SQLParserEntry;
+import org.apache.shardingsphere.sql.parser.visitor.impl.MySQLDALVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.MySQLDCLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.MySQLDDLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.MySQLDMLVisitor;
+import org.apache.shardingsphere.sql.parser.visitor.impl.MySQLTCLVisitor;
 
 /**
  * SQL parser entry for MySQL.
- *
- * @author zhangliang
- * @author panjuan
  */
 public final class MySQLParserEntry implements SQLParserEntry {
     
@@ -47,7 +49,19 @@ public final class MySQLParserEntry implements SQLParserEntry {
     }
     
     @Override
-    public Class<? extends SQLVisitor> getVisitorClass() {
-        return MySQLVisitor.class;
+    public Class<? extends ParseTreeVisitor> getVisitorClass(final String visitorName) {
+        if (MySQLDMLVisitor.class.getSimpleName().contains(visitorName)) {
+            return MySQLDMLVisitor.class;
+        }
+        if (MySQLDDLVisitor.class.getSimpleName().contains(visitorName)) {
+            return MySQLDDLVisitor.class;
+        }
+        if (MySQLTCLVisitor.class.getSimpleName().contains(visitorName)) {
+            return MySQLTCLVisitor.class;
+        }
+        if (MySQLDCLVisitor.class.getSimpleName().contains(visitorName)) {
+            return MySQLDCLVisitor.class;
+        }
+        return MySQLDALVisitor.class;
     }
 }

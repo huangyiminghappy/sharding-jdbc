@@ -26,13 +26,12 @@ import org.apache.shardingsphere.sql.parser.sql.segment.ddl.column.alter.DropCol
 import org.apache.shardingsphere.sql.parser.util.SQLUtil;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
 
 /**
  * Drop column definition extractor.
- *
- * @author duhongjun
  */
 public final class DropColumnDefinitionExtractor implements CollectionSQLSegmentExtractor {
     
@@ -48,7 +47,8 @@ public final class DropColumnDefinitionExtractor implements CollectionSQLSegment
     private Collection<DropColumnDefinitionSegment> extractDropColumnSegments(final ParserRuleContext dropColumnNode) {
         Collection<DropColumnDefinitionSegment> result = new LinkedList<>();
         for (ParseTree each : ExtractorUtils.getAllDescendantNodes(dropColumnNode, RuleName.COLUMN_NAME)) {
-            result.add(new DropColumnDefinitionSegment(dropColumnNode.getStart().getStartIndex(), dropColumnNode.getStop().getStartIndex(), SQLUtil.getExactlyValue(each.getText())));
+            result.add(new DropColumnDefinitionSegment(
+                    dropColumnNode.getStart().getStartIndex(), dropColumnNode.getStop().getStartIndex(), Collections.singletonList(SQLUtil.getExactlyValue(each.getText()))));
         }
         return result;
     }

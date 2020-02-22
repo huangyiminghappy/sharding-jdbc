@@ -21,15 +21,15 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.SQLSegmentAssert;
-import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.owner.OwnerAssert;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.ExpectedProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.ExpectedProjections;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.aggregation.ExpectedAggregationDistinctProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.aggregation.ExpectedAggregationProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.column.ExpectedColumnProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.expression.ExpectedExpressionProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.shorthand.ExpectedShorthandProjection;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.segment.impl.projection.impl.top.ExpectedTopProjection;
+import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.table.TableAssert;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.ExpectedProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.ExpectedProjections;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.aggregation.ExpectedAggregationDistinctProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.aggregation.ExpectedAggregationProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.column.ExpectedColumnProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.expression.ExpectedExpressionProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.shorthand.ExpectedShorthandProjection;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.projection.impl.top.ExpectedTopProjection;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.AggregationDistinctProjectionSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.AggregationProjectionSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.item.ColumnProjectionSegment;
@@ -50,9 +50,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- *  Projection assert.
- *
- * @author zhaoyanan
+ * Projection assert.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProjectionAssert {
@@ -103,20 +101,20 @@ public final class ProjectionAssert {
     private static void assertShorthandProjection(final SQLCaseAssertContext assertContext, final ShorthandProjectionSegment actual, final ExpectedShorthandProjection expected) {
         if (null != expected.getOwner()) {
             assertTrue(assertContext.getText("Actual owner should exist."), actual.getOwner().isPresent());
-            OwnerAssert.assertTable(assertContext, actual.getOwner().get(), expected.getOwner());
+            TableAssert.assertOwner(assertContext, actual.getOwner().get(), expected.getOwner());
         } else {
             assertFalse(assertContext.getText("Actual owner should not exist."), actual.getOwner().isPresent());
         }
     }
     
     private static void assertColumnProjection(final SQLCaseAssertContext assertContext, final ColumnProjectionSegment actual, final ExpectedColumnProjection expected) {
-        assertThat(assertContext.getText("Column projection name assertion error: "), actual.getName(), is(expected.getName()));
-        assertThat(assertContext.getText("Column projection start delimiter assertion error: "), actual.getQuoteCharacter().getStartDelimiter(), is(expected.getStartDelimiter()));
-        assertThat(assertContext.getText("Column projection end delimiter assertion error: "), actual.getQuoteCharacter().getEndDelimiter(), is(expected.getEndDelimiter()));
+        assertThat(assertContext.getText("Column projection name assertion error: "), actual.getIdentifier().getValue(), is(expected.getName()));
+        assertThat(assertContext.getText("Column projection start delimiter assertion error: "), actual.getIdentifier().getQuoteCharacter().getStartDelimiter(), is(expected.getStartDelimiter()));
+        assertThat(assertContext.getText("Column projection end delimiter assertion error: "), actual.getIdentifier().getQuoteCharacter().getEndDelimiter(), is(expected.getEndDelimiter()));
         assertThat(assertContext.getText("Column projection alias assertion error: "), actual.getAlias().orNull(), is(expected.getAlias()));
         if (null != expected.getOwner()) {
             assertTrue(assertContext.getText("Actual owner should exist."), actual.getOwner().isPresent());
-            OwnerAssert.assertTable(assertContext, actual.getOwner().get(), expected.getOwner());
+            TableAssert.assertOwner(assertContext, actual.getOwner().get(), expected.getOwner());
         } else {
             assertFalse(assertContext.getText("Actual owner should not exist."), actual.getOwner().isPresent());
         }

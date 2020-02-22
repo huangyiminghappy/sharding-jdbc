@@ -18,16 +18,14 @@
 
 <sql-parser-test-cases>
     <select sql-case-id="select_pagination_with_group_by_and_order_by" parameters="1, 2, 9, 10, 5, 3">
-        <tables>
-            <table name="t_order" alias="o" start-index="22" stop-index="28" />
-            <table name="t_order_item" alias="i" start-index="37" stop-index="48" />
-        </tables>
+        <table name="t_order" alias="o" start-index="22" stop-index="28" />
+        <table name="t_order_item" alias="i" start-index="37" stop-index="48" />
         <projections start-index="7" stop-index="15">
             <column-projection name="user_id" start-index="7" stop-index="15">
                 <owner name="i" start-index="7" stop-index="7" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="105" stop-index="160" literal-stop-index="161">
+        <where start-index="105" stop-index="160" literal-stop-index="161">
             <and-predicate>
                 <predicate start-index="111" stop-index="129">
                     <column-left-value name="user_id" start-index="111" stop-index="119">
@@ -70,16 +68,14 @@
     </select>
     
     <select sql-case-id="select_pagination_with_diff_group_by_and_order_by" parameters="1, 2, 9, 10, 5, 3">
-        <tables>
-            <table name="t_order" alias="o" start-index="22" stop-index="28" />
-            <table name="t_order_item" alias="i" start-index="37" stop-index="48" />
-        </tables>
+        <table name="t_order" alias="o" start-index="22" stop-index="28" />
+        <table name="t_order_item" alias="i" start-index="37" stop-index="48" />
         <projections start-index="7" stop-index="15">
             <column-projection name="user_id" start-index="7" stop-index="15">
                 <owner name="i" start-index="7" stop-index="7" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="105" stop-index="160" literal-stop-index="161">
+        <where start-index="105" stop-index="160" literal-stop-index="161">
             <and-predicate>
                 <predicate start-index="111" stop-index="129">
                     <column-left-value name="user_id" start-index="111" stop-index="119">
@@ -122,10 +118,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_top_and_group_by_and_order_by" parameters="3, 1, 2, 9, 10, 6">
-        <tables>
-            <table name="t_order" alias="o" start-index="165" stop-index="171" />
-            <table name="t_order_item" alias="i" start-index="180" stop-index="191" />
-        </tables>
+        <table name="t_order" alias="o" start-index="165" stop-index="171" />
+        <table name="t_order_item" alias="i" start-index="180" stop-index="191" />
         <projections start-index="22" stop-index="158">
             <top-projection alias="rownum_" start-index="22" stop-index="70">
                 <top-value value="3" parameter-index="0" start-index="26" stop-index="26" />
@@ -143,7 +137,7 @@
                 <owner name="o" start-index="139" stop-index="139" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="333" stop-index="354" literal-start-index="334" literal-stop-index="355">
+        <where start-index="333" stop-index="354" literal-start-index="334" literal-stop-index="355">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="339" stop-index="354" literal-start-index="340" literal-stop-index="355">
@@ -173,10 +167,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_top_and_group_by_and_order_by_and_parentheses" parameters="3, 1, 2, 9, 10, 6">
-        <tables>
-            <table name="t_order" alias="o" start-index="167" stop-index="173" />
-            <table name="t_order_item" alias="i" start-index="182" stop-index="193" />
-        </tables>
+        <table name="t_order" alias="o" start-index="167" stop-index="173" />
+        <table name="t_order_item" alias="i" start-index="182" stop-index="193" />
         <projections start-index="22" stop-index="160">
             <top-projection alias="rownum_" start-index="22" stop-index="72">
                 <top-value value="3" parameter-index="0" start-index="27" stop-index="27" />
@@ -194,7 +186,7 @@
                 <owner name="o" start-index="141" stop-index="141" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="335" stop-index="356" literal-start-index="336" literal-stop-index="357">
+        <where start-index="335" stop-index="356" literal-start-index="336" literal-stop-index="357">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="341" stop-index="356" literal-start-index="342" literal-stop-index="357">
@@ -224,10 +216,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_top_and_diff_group_by_and_order_by" parameters="3, 1, 2, 9, 10, 6">
-        <tables>
-            <table name="t_order" alias="o" start-index="165" stop-index="171" />
-            <table name="t_order_item" alias="i" start-index="180" stop-index="191" />
-        </tables>
+        <table name="t_order" alias="o" start-index="165" stop-index="171" />
+        <table name="t_order_item" alias="i" start-index="180" stop-index="191" />
         <projections start-index="22" stop-index="158">
             <top-projection alias="rownum_" start-index="22" stop-index="70">
                 <top-value value="3" parameter-index="0" start-index="26" stop-index="26" />
@@ -245,7 +235,7 @@
                 <owner name="o" start-index="139" stop-index="139" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="334" stop-index="355" literal-start-index="335" literal-stop-index="356">
+        <where start-index="334" stop-index="355" literal-start-index="335" literal-stop-index="356">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="340" stop-index="355" literal-start-index="341" literal-stop-index="356">
@@ -275,10 +265,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_top_and_diff_group_by_and_order_by_and_parentheses" parameters="3, 1, 2, 9, 10, 6">
-        <tables>
-            <table name="t_order" alias="o" start-index="167" stop-index="173" />
-            <table name="t_order_item" alias="i" start-index="182" stop-index="193" />
-        </tables>
+        <table name="t_order" alias="o" start-index="167" stop-index="173" />
+        <table name="t_order_item" alias="i" start-index="182" stop-index="193" />
         <projections start-index="22" stop-index="160">
             <top-projection alias="rownum_" start-index="22" stop-index="72">
                 <top-value value="3" parameter-index="0" start-index="27" stop-index="27" />
@@ -296,7 +284,7 @@
                 <owner name="o" start-index="141" stop-index="141" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="336" stop-index="357" literal-start-index="337" literal-stop-index="358">
+        <where start-index="336" stop-index="357" literal-start-index="337" literal-stop-index="358">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="342" stop-index="357" literal-start-index="343" literal-stop-index="358">
@@ -326,10 +314,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_row_number_and_group_by_and_order_by" parameters="1, 2, 9, 10, 5, 3">
-        <tables>
-            <table name="t_order" alias="order0_" start-index="146" stop-index="152" />
-            <table name="t_order_item" alias="i" start-index="167" stop-index="178" />
-        </tables>
+        <table name="t_order" alias="order0_" start-index="146" stop-index="152" />
+        <table name="t_order_item" alias="i" start-index="167" stop-index="178" />
         <projections start-index="58" stop-index="139">
             <column-projection name="order_id" alias="order_id" start-index="58" stop-index="73">
                 <owner name="order0_" start-index="58" stop-index="64" />
@@ -341,7 +327,7 @@
                 <owner name="order0_" start-index="114" stop-index="120" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="386" stop-index="404" literal-start-index="387" literal-stop-index="405">
+        <where start-index="386" stop-index="404" literal-start-index="387" literal-stop-index="405">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="392" stop-index="404" literal-start-index="393" literal-stop-index="405">
@@ -371,10 +357,8 @@
     </select>
     
     <select sql-case-id="select_pagination_with_row_number_and_diff_group_by_and_order_by" parameters="1, 2, 9, 10, 5, 3">
-        <tables>
-            <table name="t_order" alias="order0_" start-index="146" stop-index="152" />
-            <table name="t_order_item" alias="i" start-index="167" stop-index="178" />
-        </tables>
+        <table name="t_order" alias="order0_" start-index="146" stop-index="152" />
+        <table name="t_order_item" alias="i" start-index="167" stop-index="178" />
         <projections start-index="58" stop-index="139">
             <column-projection name="order_id" alias="order_id" start-index="58" stop-index="73">
                 <owner name="order0_" start-index="58" stop-index="64" />
@@ -386,7 +370,7 @@
                 <owner name="order0_" start-index="114" stop-index="120" />
             </column-projection>
         </projections>
-        <where parameters-count="6" start-index="386" stop-index="404" literal-start-index="387" literal-stop-index="405">
+        <where start-index="386" stop-index="404" literal-start-index="387" literal-stop-index="405">
             <and-predicate>
                 <!-- FIXME cannot parse subquery's predicate -->
                 <predicate start-index="392" stop-index="404" literal-start-index="393" literal-stop-index="405">

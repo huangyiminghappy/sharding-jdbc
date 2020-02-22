@@ -21,8 +21,6 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Rule name.
- * 
- * @author zhangliang
  */
 @RequiredArgsConstructor
 public enum RuleName {
@@ -163,7 +161,105 @@ public enum RuleName {
 
     LOCK_CLAUSE("LockClause"),
     
-    TOP("Top");
+    TOP("Top"),
+    
+    SELECT("Select"),
+    
+    INSERT("Insert"),
+    
+    UPDATE("Update"),
+    
+    DELETE("Delete"),
+    
+    REPLACE("Replace"),
+    
+    CREATE_TABLE("CreateTable"),
+    
+    ALTER_TABLE("AlterTable"),
+    
+    DROP_TABLE("DropTable"),
+    
+    TRUNCATE_TABLE("TruncateTable"),
+    
+    CREATE_INDEX("CreateIndex"),
+    
+    ALTER_INDEX("AlterIndex"),
+    
+    DROP_INDEX("DropIndex"),
+    
+    SET_TRANSACTION("SetTransaction"),
+    
+    SET_IMPLICIT_TRANSACTIONS("SetImplicitTransactions"),
+    
+    BEGIN_TRANSACTION("BeginTransaction"),
+    
+    SET_AUTOCOMMIT("SetAutoCommit"),
+    
+    COMMIT("Commit"),
+    
+    ROLLBACK("Rollback"),
+    
+    SAVE_POINT("Savepoint"),
+    
+    GRANT("Grant"),
+    
+    REVOKE("Revoke"),
+    
+    CREATE_USER("CreateUser"),
+    
+    ALTER_USER("AlterUser"),
+    
+    DROP_USER("DropUser"),
+    
+    DENY_USER("Deny"),
+    
+    RENAME_USER("RenameUser"),
+    
+    CREATE_ROLE("CreateRole"),
+    
+    ALTER_ROLE("AlterRole"),
+    
+    DROP_ROLE("DropRole"),
+    
+    CREATE_LOGIN("CreateLogin"),
+    
+    ALTER_LOGIN("AlterLogin"),
+    
+    DROP_LOGIN("DropLogin"),
+    
+    SET_DEFAULT_ROLE("SetDefaultRole"),
+    
+    SET_ROLE("SetRole"),
+    
+    SET_PASSWORD("SetPassword"),
+    
+    USE("Use"),
+    
+    DESC("Desc"),
+    
+    SHOW_DATABASES("ShowDatabases"),
+    
+    SHOW_TABLES("ShowTables"),
+    
+    SHOW_TABLE_STATUS("ShowTableStatus"),
+    
+    SHOW_COLUMNS("ShowColumns"),
+    
+    SHOW_INDEX("ShowIndex"),
+    
+    SHOW_CREATE_TABLE("ShowCreateTable"),
+    
+    SHOW_OTHER("ShowOther"),
+    
+    SHOW("Show"),
+    
+    SET_VARIABLE("SetVariable"),
+    
+    SET("Set"),
+    
+    RESET_PARAMETER("ResetParameter"),
+    
+    CALL("Call");
     
     private final String name;
     

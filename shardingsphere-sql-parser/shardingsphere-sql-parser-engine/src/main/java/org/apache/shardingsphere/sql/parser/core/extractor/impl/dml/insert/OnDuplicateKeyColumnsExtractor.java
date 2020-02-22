@@ -32,8 +32,6 @@ import java.util.Map;
 
 /**
  * On duplicate key columns extractor.
- *
- * @author zhangliang
  */
 public final class OnDuplicateKeyColumnsExtractor implements OptionalSQLSegmentExtractor {
     
@@ -46,7 +44,7 @@ public final class OnDuplicateKeyColumnsExtractor implements OptionalSQLSegmentE
             return Optional.absent();
         }
         Collection<AssignmentSegment> assignmentSegments = new LinkedList<>();
-        for (ParserRuleContext each : ExtractorUtils.getAllDescendantNodes(ancestorNode, RuleName.ASSIGNMENT)) {
+        for (ParserRuleContext each : ExtractorUtils.getAllDescendantNodes(onDuplicateKeyClauseNode.get(), RuleName.ASSIGNMENT)) {
             Optional<AssignmentSegment> assignmentSegment = assignmentExtractor.extract(each, parameterMarkerIndexes);
             if (assignmentSegment.isPresent()) {
                 assignmentSegments.add(assignmentSegment.get());
