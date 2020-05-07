@@ -21,8 +21,8 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.assignment.AssignmentValueAssert;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.insert.ExpectedInsertValue;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.insert.ExpectedInsertValuesClause;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.domain.segment.impl.insert.ExpectedInsertValue;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.domain.segment.impl.insert.ExpectedInsertValuesClause;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.assignment.InsertValuesSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.expr.ExpressionSegment;
 
@@ -60,7 +60,5 @@ public final class InsertValuesClauseAssert {
             AssignmentValueAssert.assertIs(assertContext, each, expected.getAssignmentValues().get(count));
             count++;
         }
-        // TODO assert start index and stop index
-//        SQLSegmentAssert.assertIs(assertContext, actual, expected);
     }
 }

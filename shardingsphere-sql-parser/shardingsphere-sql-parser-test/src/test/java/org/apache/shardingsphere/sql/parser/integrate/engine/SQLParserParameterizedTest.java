@@ -19,27 +19,24 @@ package org.apache.shardingsphere.sql.parser.integrate.engine;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.shardingsphere.sql.parser.SQLParseEngineFactory;
+import org.apache.shardingsphere.sql.parser.SQLParserEngineFactory;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.statement.SQLStatementAssert;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.SQLParserTestCasesRegistry;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.SQLParserTestCasesRegistryFactory;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.statement.SQLParserTestCase;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.SQLParserTestCasesRegistry;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.SQLParserTestCasesRegistryFactory;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.domain.statement.SQLParserTestCase;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.sql.SQLCaseType;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.sql.loader.SQLCasesLoader;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.sql.loader.SQLCasesRegistry;
 import org.apache.shardingsphere.sql.parser.sql.statement.SQLStatement;
-import org.apache.shardingsphere.test.sql.SQLCaseType;
-import org.apache.shardingsphere.test.sql.loader.SQLCasesLoader;
-import org.apache.shardingsphere.test.sql.loader.SQLCasesRegistry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Properties;
 
 import static org.junit.Assert.fail;
 
@@ -52,21 +49,11 @@ public final class SQLParserParameterizedTest {
     
     private static final SQLParserTestCasesRegistry SQL_PARSER_TEST_CASES_REGISTRY = SQLParserTestCasesRegistryFactory.getInstance().getRegistry();
     
-    private static final Properties PROPS = new Properties();
-    
     private final String sqlCaseId;
     
     private final String databaseType;
     
     private final SQLCaseType sqlCaseType;
-    
-    static {
-        try {
-            PROPS.load(new FileInputStream(SQLParserParameterizedTest.class.getProtectionDomain().getCodeSource().getLocation().getPath() + "/runtime-config.properties"));
-        } catch (final IOException ex) {
-            log.warn("Can not find file `runtime-config.properties`, use default properties configuration.", ex);
-        }
-    }
     
     @Parameters(name = "{0} ({2}) -> {1}")
     public static Collection<Object[]> getTestParameters() {
@@ -111,15 +98,7 @@ public final class SQLParserParameterizedTest {
         sqlCases.add("show_index_with_indexes_with_table_and_database");
         sqlCases.add("show_index_with_database_back_quotes");
         sqlCases.add("show_index_with_table_back_quotes");
-        // TODO Stop index is wrong
-        sqlCases.add("select_with_expression");
         // TODO Sub query is necessary
-        sqlCases.add("select_pagination_with_row_number");
-        sqlCases.add("select_pagination_with_row_number_and_diff_group_by_and_order_by");
-        sqlCases.add("select_pagination_with_row_number_and_diff_group_by_and_order_by");
-        sqlCases.add("select_pagination_with_row_number_and_group_by_and_order_by");
-        sqlCases.add("select_pagination_with_row_number_for_greater_than");
-        sqlCases.add("select_pagination_with_row_number_for_greater_than_and_equal");
         sqlCases.add("select_pagination_with_offset_fetch");
         sqlCases.add("select_pagination_with_top");
         sqlCases.add("select_pagination_with_top_for_greater_than");
@@ -128,6 +107,8 @@ public final class SQLParserParameterizedTest {
         sqlCases.add("select_pagination_with_top_and_group_by_and_order_by_and_parentheses");
         sqlCases.add("select_pagination_with_top_and_diff_group_by_and_order_by");
         sqlCases.add("select_pagination_with_top_and_diff_group_by_and_order_by_and_parentheses");
+        // TODO Stop index is wrong
+        sqlCases.add("select_with_expression");
         // TODO Alter statement needs new segment
         sqlCases.add("alter_table_add_foreign_key");
         sqlCases.add("alter_table_add_primary_foreign_key");
@@ -137,13 +118,6 @@ public final class SQLParserParameterizedTest {
         sqlCases.add("create_table_with_exist_index");
         // TODO cannot support insert all
         sqlCases.add("insert_all_with_all_placeholders");
-        // TODO Correct for new parser, please remove them after using new parser
-        sqlCases.add("insert_on_duplicate_key_update_with_base64_aes_encrypt");
-        sqlCases.add("insert_with_one_auto_increment_column");
-        sqlCases.add("insert_on_duplicate_key_update_with_complicated_expression");
-        sqlCases.add("insert_without_columns_and_with_generate_key_column");
-        sqlCases.add("insert_without_columns_and_without_generate_key_column");
-        sqlCases.add("insert_without_columns_with_all_placeholders");
         return sqlCases.contains(sqlCaseId);
     }
     
@@ -154,14 +128,9 @@ public final class SQLParserParameterizedTest {
     @Test
     public void assertSupportedSQL() {
         SQLParserTestCase expected = SQL_PARSER_TEST_CASES_REGISTRY.get(sqlCaseId);
-        if (expected.isLongSQL() && Boolean.parseBoolean(PROPS.getProperty("long.sql.skip", Boolean.TRUE.toString()))) {
-            return;
-        }
         String databaseType = "H2".equals(this.databaseType) ? "MySQL" : this.databaseType;
         String sql = SQL_CASES_LOADER.getSQL(sqlCaseId, sqlCaseType, SQL_PARSER_TEST_CASES_REGISTRY.get(sqlCaseId).getParameters());
-        SQLStatement actual = SQLParseEngineFactory.getSQLParseEngine(databaseType).parse(sql, false);
-        if (!expected.isLongSQL()) {
-            SQLStatementAssert.assertIs(new SQLCaseAssertContext(sqlCaseId, sqlCaseType), actual, expected);
-        }
+        SQLStatement actual = SQLParserEngineFactory.getSQLParserEngine(databaseType).parse(sql, false);
+        SQLStatementAssert.assertIs(new SQLCaseAssertContext(sqlCaseId, sqlCaseType), actual, expected);
     }
 }

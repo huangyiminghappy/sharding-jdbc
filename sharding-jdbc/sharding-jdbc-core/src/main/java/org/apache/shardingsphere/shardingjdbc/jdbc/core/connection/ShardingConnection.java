@@ -19,8 +19,8 @@ package org.apache.shardingsphere.shardingjdbc.jdbc.core.connection;
 
 import lombok.Getter;
 import org.apache.shardingsphere.shardingjdbc.jdbc.adapter.AbstractConnectionAdapter;
-import org.apache.shardingsphere.shardingjdbc.jdbc.adapter.executor.ForceExecuteCallback;
-import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.ShardingRuntimeContext;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.RuntimeContext;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.metadata.ShardingSphereDatabaseMetaData;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.statement.ShardingPreparedStatement;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.statement.ShardingStatement;
 import org.apache.shardingsphere.transaction.core.TransactionType;
@@ -40,17 +40,12 @@ import java.util.Map;
 @Getter
 public final class ShardingConnection extends AbstractConnectionAdapter {
     
-    private final Map<String, DataSource> dataSourceMap;
-    
-    private final ShardingRuntimeContext runtimeContext;
-    
     private final TransactionType transactionType;
     
     private final ShardingTransactionManager shardingTransactionManager;
     
-    public ShardingConnection(final Map<String, DataSource> dataSourceMap, final ShardingRuntimeContext runtimeContext, final TransactionType transactionType) {
-        this.dataSourceMap = dataSourceMap;
-        this.runtimeContext = runtimeContext;
+    public ShardingConnection(final Map<String, DataSource> dataSourceMap, final RuntimeContext runtimeContext, final TransactionType transactionType) {
+        super(dataSourceMap, runtimeContext);
         this.transactionType = transactionType;
         shardingTransactionManager = runtimeContext.getShardingTransactionManagerEngine().getTransactionManager(transactionType);
     }
@@ -74,8 +69,8 @@ public final class ShardingConnection extends AbstractConnectionAdapter {
     }
     
     @Override
-    public DatabaseMetaData getMetaData() throws SQLException {
-        return getCachedConnections().isEmpty() ? runtimeContext.getCachedDatabaseMetaData() : getCachedConnections().values().iterator().next().getMetaData();
+    public DatabaseMetaData getMetaData() {
+        return new ShardingSphereDatabaseMetaData(this);
     }
     
     @Override
@@ -143,13 +138,7 @@ public final class ShardingConnection extends AbstractConnectionAdapter {
     }
     
     private void closeCachedConnections() throws SQLException {
-        getForceExecuteTemplate().execute(getCachedConnections().values(), new ForceExecuteCallback<Connection>() {
-            
-            @Override
-            public void execute(final Connection connection) throws SQLException {
-                connection.close();
-            }
-        });
+        getForceExecuteTemplate().execute(getCachedConnections().values(), Connection::close);
         getCachedConnections().clear();
     }
     

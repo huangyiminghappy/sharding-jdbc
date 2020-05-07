@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.assignment.AssignmentAssert;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.insert.ExpectedOnDuplicateKeyColumns;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.domain.segment.impl.insert.ExpectedOnDuplicateKeyColumns;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.assignment.AssignmentSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.column.OnDuplicateKeyColumnsSegment;
 
@@ -44,8 +44,7 @@ public final class OnDuplicateKeyColumnsAssert {
      * @param expected expected on duplicate key columns
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final OnDuplicateKeyColumnsSegment actual, final ExpectedOnDuplicateKeyColumns expected) {
-        assertNotNull(assertContext.getText("On duplicate key columns should existed."), expected);
-        // TODO assert start index and stop index
+        assertNotNull(assertContext.getText("On duplicate key columns should exist."), expected);
         assertThat(assertContext.getText("On duplicate key columns size assertion error: "), actual.getColumns().size(), is(expected.getAssignments().size()));
         int count = 0;
         for (AssignmentSegment each : actual.getColumns()) {

@@ -21,8 +21,11 @@ import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCase;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCaseAssertion;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLValue;
 import org.apache.shardingsphere.dbtest.engine.BatchIT;
-import org.apache.shardingsphere.dbtest.env.DatabaseTypeEnvironment;
+import org.apache.shardingsphere.dbtest.engine.SQLType;
+import org.apache.shardingsphere.dbtest.engine.util.IntegrateTestParameters;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
 import org.junit.Test;
+import org.junit.runners.Parameterized.Parameters;
 
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
@@ -30,6 +33,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.Collection;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -38,16 +42,25 @@ public final class BatchDMLIT extends BatchIT {
     
     private final IntegrateTestCase integrateTestCase;
     
-    public BatchDMLIT(final String sqlCaseId, final IntegrateTestCase integrateTestCase,
-                      final String shardingRuleType, final DatabaseTypeEnvironment databaseTypeEnvironment) throws IOException, JAXBException, SQLException {
-        super(sqlCaseId, integrateTestCase, shardingRuleType, databaseTypeEnvironment);
+    public BatchDMLIT(final IntegrateTestCase integrateTestCase,
+                      final String ruleType, final String databaseType, final String sql) throws IOException, JAXBException, SQLException {
+        super(integrateTestCase, ruleType, DatabaseTypes.getActualDatabaseType(databaseType), sql);
         this.integrateTestCase = integrateTestCase;
+    }
+    
+    @Parameters(name = "Rule:{1} -> {2} -> {3}")
+    public static Collection<Object[]> getParameters() {
+        return IntegrateTestParameters.getParametersWithCase(SQLType.DML);
     }
     
     @Test
     public void assertExecuteBatch() throws JAXBException, IOException, SQLException, ParseException {
         // TODO fix masterslave
-        if (!getDatabaseTypeEnvironment().isEnabled() || "masterslave".equals(getRuleType())) {
+        if ("masterslave".equals(getRuleType())) {
+            return;
+        }
+        // TODO fix shadow
+        if ("shadow".equals(getRuleType())) {
             return;
         }
         int[] actualUpdateCounts;
@@ -76,7 +89,11 @@ public final class BatchDMLIT extends BatchIT {
     @Test
     public void assertClearBatch() throws SQLException, ParseException {
         // TODO fix masterslave
-        if (!getDatabaseTypeEnvironment().isEnabled() || "masterslave".equals(getRuleType())) {
+        if ("masterslave".equals(getRuleType())) {
+            return;
+        }
+        // TODO fix shadow
+        if ("shadow".equals(getRuleType())) {
             return;
         }
         try (Connection connection = getDataSource().getConnection()) {

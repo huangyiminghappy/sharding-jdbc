@@ -19,12 +19,12 @@ package org.apache.shardingsphere.shardingjdbc.spring;
 
 import org.apache.shardingsphere.core.rule.ShardingRule;
 import org.apache.shardingsphere.core.rule.TableRule;
-import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.ShardingRuntimeContext;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.RuntimeContext;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource;
-import org.apache.shardingsphere.shardingjdbc.spring.fixture.DecrementKeyGenerator;
-import org.apache.shardingsphere.shardingjdbc.spring.fixture.IncrementKeyGenerator;
+import org.apache.shardingsphere.shardingjdbc.spring.fixture.DecrementKeyGenerateAlgorithm;
+import org.apache.shardingsphere.shardingjdbc.spring.fixture.IncrementKeyGenerateAlgorithm;
 import org.apache.shardingsphere.shardingjdbc.spring.util.FieldValueUtil;
-import org.apache.shardingsphere.spi.keygen.ShardingKeyGenerator;
+import org.apache.shardingsphere.spi.keygen.KeyGenerateAlgorithm;
 import org.junit.Test;
 import org.springframework.test.context.ContextConfiguration;
 
@@ -65,21 +65,23 @@ public class GenerateKeyJUnitTest extends AbstractSpringJUnitTest {
     @SuppressWarnings("unchecked")
     @Test
     public void assertGenerateKeyColumn() {
-        ShardingRuntimeContext runtimeContext = shardingDataSource.getRuntimeContext();
+        RuntimeContext runtimeContext = shardingDataSource.getRuntimeContext();
         assertNotNull(runtimeContext);
-        ShardingRule shardingRule = runtimeContext.getRule();
+        ShardingRule shardingRule = (ShardingRule) runtimeContext.getRules().iterator().next();
         assertNotNull(shardingRule);
-        ShardingKeyGenerator defaultKeyGenerator = shardingRule.getDefaultShardingKeyGenerator();
-        assertNotNull(defaultKeyGenerator);
-        assertTrue(defaultKeyGenerator instanceof IncrementKeyGenerator);
+        KeyGenerateAlgorithm defaultKeyGenerateAlgorithm = shardingRule.getDefaultKeyGenerateAlgorithm();
+        assertNotNull(defaultKeyGenerateAlgorithm);
+        assertTrue(defaultKeyGenerateAlgorithm instanceof IncrementKeyGenerateAlgorithm);
         Object tableRules = FieldValueUtil.getFieldValue(shardingRule, "tableRules");
         assertNotNull(tableRules);
         assertThat(((Collection<TableRule>) tableRules).size(), is(2));
         Iterator<TableRule> tableRuleIterator = ((Collection<TableRule>) tableRules).iterator();
         TableRule orderRule = tableRuleIterator.next();
-        assertThat(orderRule.getGenerateKeyColumn(), is("order_id"));
+        assertTrue(orderRule.getGenerateKeyColumn().isPresent());
+        assertThat(orderRule.getGenerateKeyColumn().get(), is("order_id"));
         TableRule orderItemRule = tableRuleIterator.next();
-        assertThat(orderItemRule.getGenerateKeyColumn(), is("order_item_id"));
-        assertTrue(orderItemRule.getShardingKeyGenerator() instanceof DecrementKeyGenerator);
+        assertTrue(orderItemRule.getGenerateKeyColumn().isPresent());
+        assertThat(orderItemRule.getGenerateKeyColumn().get(), is("order_item_id"));
+        assertTrue(orderItemRule.getKeyGenerateAlgorithm() instanceof DecrementKeyGenerateAlgorithm);
     }
 }

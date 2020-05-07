@@ -18,8 +18,9 @@
 package org.apache.shardingsphere.shardingjdbc.jdbc.core.resultset;
 
 import lombok.EqualsAndHashCode;
-import org.apache.shardingsphere.core.rule.ShardingRule;
 import org.apache.shardingsphere.shardingjdbc.jdbc.unsupported.AbstractUnsupportedDatabaseMetaDataResultSet;
+import org.apache.shardingsphere.underlying.common.rule.DataNodeRoutedRule;
+import org.apache.shardingsphere.underlying.common.rule.ShardingSphereRule;
 
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -29,12 +30,12 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -50,7 +51,7 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     
     private final int concurrency;
     
-    private final ShardingRule shardingRule;
+    private final Collection<ShardingSphereRule> rules;
     
     private final ResultSetMetaData resultSetMetaData;
     
@@ -62,10 +63,10 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     
     private DatabaseMetaDataObject currentDatabaseMetaDataObject;
     
-    public DatabaseMetaDataResultSet(final ResultSet resultSet, final ShardingRule shardingRule) throws SQLException {
+    public DatabaseMetaDataResultSet(final ResultSet resultSet, final Collection<ShardingSphereRule> rules) throws SQLException {
         this.type = resultSet.getType();
         this.concurrency = resultSet.getConcurrency();
-        this.shardingRule = shardingRule;
+        this.rules = rules;
         this.resultSetMetaData = resultSet.getMetaData();
         this.columnLabelIndexMap = initIndexMap();
         this.databaseMetaDataObjectIterator = initIterator(resultSet);
@@ -82,8 +83,8 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     private Iterator<DatabaseMetaDataObject> initIterator(final ResultSet resultSet) throws SQLException {
         LinkedList<DatabaseMetaDataObject> result = new LinkedList<>();
         Set<DatabaseMetaDataObject> removeDuplicationSet = new HashSet<>();
-        int tableNameColumnIndex = columnLabelIndexMap.containsKey(TABLE_NAME) ? columnLabelIndexMap.get(TABLE_NAME) : -1;
-        int indexNameColumnIndex = columnLabelIndexMap.containsKey(INDEX_NAME) ? columnLabelIndexMap.get(INDEX_NAME) : -1;
+        int tableNameColumnIndex = columnLabelIndexMap.getOrDefault(TABLE_NAME, -1);
+        int indexNameColumnIndex = columnLabelIndexMap.getOrDefault(INDEX_NAME, -1);
         while (resultSet.next()) {
             DatabaseMetaDataObject databaseMetaDataObject = generateDatabaseMetaDataObject(tableNameColumnIndex, indexNameColumnIndex, resultSet);
             if (!removeDuplicationSet.contains(databaseMetaDataObject)) {
@@ -96,11 +97,12 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
     
     private DatabaseMetaDataObject generateDatabaseMetaDataObject(final int tableNameColumnIndex, final int indexNameColumnIndex, final ResultSet resultSet) throws SQLException {
         DatabaseMetaDataObject result = new DatabaseMetaDataObject(resultSetMetaData.getColumnCount());
+        Optional<DataNodeRoutedRule> dataNodeRoutedRule = findDataNodeRoutedRule();
         for (int i = 1; i <= columnLabelIndexMap.size(); i++) {
             if (tableNameColumnIndex == i) {
                 String tableName = resultSet.getString(i);
-                Collection<String> logicTableNames = null == shardingRule ? Collections.<String>emptyList() : shardingRule.getLogicTableNames(tableName);
-                result.addObject(logicTableNames.isEmpty() ? tableName : logicTableNames.iterator().next());
+                Optional<String> logicTableName = dataNodeRoutedRule.isPresent() ? dataNodeRoutedRule.get().findLogicTableByActualTable(tableName) : Optional.empty();
+                result.addObject(logicTableName.orElse(tableName));
             } else if (indexNameColumnIndex == i) {
                 String tableName = resultSet.getString(tableNameColumnIndex);
                 String indexName = resultSet.getString(i);
@@ -110,6 +112,10 @@ public final class DatabaseMetaDataResultSet extends AbstractUnsupportedDatabase
             }
         }
         return result;
+    }
+    
+    private Optional<DataNodeRoutedRule> findDataNodeRoutedRule() {
+        return rules.stream().filter(each -> each instanceof DataNodeRoutedRule).findFirst().map(rule -> (DataNodeRoutedRule) rule);
     }
     
     @Override

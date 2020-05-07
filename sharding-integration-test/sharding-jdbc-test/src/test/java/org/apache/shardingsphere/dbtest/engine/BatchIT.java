@@ -19,25 +19,21 @@ package org.apache.shardingsphere.dbtest.engine;
 
 import lombok.AccessLevel;
 import lombok.Getter;
-import org.apache.shardingsphere.core.rule.DataNode;
-import org.apache.shardingsphere.underlying.common.config.inline.InlineExpressionParser;
+import org.apache.shardingsphere.core.strategy.algorithm.sharding.inline.InlineExpressionParser;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCase;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCaseAssertion;
 import org.apache.shardingsphere.dbtest.cases.dataset.DataSet;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetColumn;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetMetadata;
 import org.apache.shardingsphere.dbtest.cases.dataset.row.DataSetRow;
-import org.apache.shardingsphere.dbtest.engine.util.IntegrateTestParameters;
-import org.apache.shardingsphere.dbtest.env.DatabaseTypeEnvironment;
 import org.apache.shardingsphere.dbtest.env.EnvironmentPath;
 import org.apache.shardingsphere.dbtest.env.dataset.DataSetEnvironmentManager;
-import org.apache.shardingsphere.test.sql.SQLCaseType;
-import org.apache.shardingsphere.test.sql.loader.SQLCasesRegistry;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
+import org.apache.shardingsphere.underlying.common.datanode.DataNode;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.runners.Parameterized.Parameters;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -52,7 +48,6 @@ import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -73,21 +68,16 @@ public abstract class BatchIT extends BaseIT {
     
     private final Collection<String> expectedDataFiles;
     
-    public BatchIT(final String sqlCaseId, final IntegrateTestCase integrateTestCase,
-                   final String shardingRuleType, final DatabaseTypeEnvironment databaseTypeEnvironment) throws IOException, JAXBException, SQLException {
-        super(shardingRuleType, databaseTypeEnvironment);
+    public BatchIT(final IntegrateTestCase integrateTestCase,
+                   final String ruleType, final DatabaseType databaseType, final String sql) throws IOException, JAXBException, SQLException {
+        super(ruleType, databaseType);
         this.integrateTestCase = integrateTestCase;
-        sql = SQLCasesRegistry.getInstance().getSqlCasesLoader().getSQL(sqlCaseId, SQLCaseType.Placeholder, Collections.emptyList());
+        this.sql = sql;
         expectedDataFiles = new LinkedList<>();
         for (IntegrateTestCaseAssertion each : integrateTestCase.getIntegrateTestCaseAssertions()) {
-            expectedDataFiles.add(getExpectedDataFile(integrateTestCase.getPath(), shardingRuleType, databaseTypeEnvironment.getDatabaseType(), each.getExpectedDataFile()));
+            expectedDataFiles.add(getExpectedDataFile(integrateTestCase.getPath(), ruleType, databaseType, each.getExpectedDataFile()));
         }
-        dataSetEnvironmentManager = databaseTypeEnvironment.isEnabled() ? new DataSetEnvironmentManager(EnvironmentPath.getDataInitializeResourceFile(shardingRuleType), getDataSourceMap()) : null;
-    }
-    
-    @Parameters(name = "{0} -> Rule:{2} -> {3}")
-    public static Collection<Object[]> getParameters() {
-        return IntegrateTestParameters.getParametersWithCase(SQLType.DML);
+        dataSetEnvironmentManager = new DataSetEnvironmentManager(EnvironmentPath.getDataInitializeResourceFile(ruleType), getDataSourceMap());
     }
     
     @BeforeClass
@@ -102,16 +92,12 @@ public abstract class BatchIT extends BaseIT {
     
     @Before
     public void insertData() throws SQLException, ParseException {
-        if (getDatabaseTypeEnvironment().isEnabled()) {
-            dataSetEnvironmentManager.initialize();
-        }
+        dataSetEnvironmentManager.initialize();
     }
     
     @After
     public void clearData() throws SQLException {
-        if (getDatabaseTypeEnvironment().isEnabled()) {
-            dataSetEnvironmentManager.clear();
-        }
+        dataSetEnvironmentManager.clear();
     }
     
     protected final void assertDataSet(final int[] actualUpdateCounts) throws SQLException, IOException, JAXBException {
@@ -171,13 +157,7 @@ public abstract class BatchIT extends BaseIT {
     }
     
     private void sortRow(final DataSet dataSet) {
-        Collections.sort(dataSet.getRows(), new Comparator<DataSetRow>() {
-            
-            @Override
-            public int compare(final DataSetRow o1, final DataSetRow o2) {
-                return Integer.parseInt(o1.getValues().get(0)) - Integer.parseInt(o2.getValues().get(0));
-            }
-        });
+        dataSet.getRows().sort(Comparator.comparingInt(o -> Integer.parseInt(o.getValues().get(0))));
     }
     
     private void assertMetaData(final ResultSetMetaData actualMetaData, final List<DataSetColumn> columnMetadataList) throws SQLException {

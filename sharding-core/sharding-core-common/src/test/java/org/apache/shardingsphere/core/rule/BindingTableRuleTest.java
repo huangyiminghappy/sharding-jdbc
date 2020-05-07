@@ -17,13 +17,11 @@
 
 package org.apache.shardingsphere.core.rule;
 
-import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
 import org.apache.shardingsphere.underlying.common.config.exception.ShardingSphereConfigurationException;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collection;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
@@ -59,7 +57,7 @@ public final class BindingTableRuleTest {
     
     @Test
     public void assertGetAllLogicTables() {
-        assertThat(createBindingTableRule().getAllLogicTables(), is((Collection<String>) Arrays.asList("logic_table", "sub_logic_table")));
+        assertThat(createBindingTableRule().getAllLogicTables(), is(Arrays.asList("logic_table", "sub_logic_table")));
     }
     
     @Test
@@ -76,14 +74,10 @@ public final class BindingTableRuleTest {
     }
     
     private TableRule createTableRule() {
-        return new TableRule(new TableRuleConfiguration("LOGIC_TABLE", "ds${0..1}.table_${0..1}"), createShardingDataSourceNames(), null);
+        return new TableRule(new TableRuleConfiguration("LOGIC_TABLE", "ds${0..1}.table_${0..1}"), Arrays.asList("ds0", "ds1"), null);
     }
     
     private TableRule createSubTableRule() {
-        return new TableRule(new TableRuleConfiguration("SUB_LOGIC_TABLE", "ds${0..1}.sub_table_${0..1}"), createShardingDataSourceNames(), null);
-    }
-    
-    private ShardingDataSourceNames createShardingDataSourceNames() {
-        return new ShardingDataSourceNames(new ShardingRuleConfiguration(), Arrays.asList("ds0", "ds1"));
+        return new TableRule(new TableRuleConfiguration("SUB_LOGIC_TABLE", "ds${0..1}.sub_table_${0..1}"), Arrays.asList("ds0", "ds1"), null);
     }
 }

@@ -17,18 +17,18 @@
 
 package org.apache.shardingsphere.dbtest.engine.dml;
 
-import org.apache.shardingsphere.core.rule.DataNode;
-import org.apache.shardingsphere.underlying.common.config.inline.InlineExpressionParser;
+import org.apache.shardingsphere.core.strategy.algorithm.sharding.inline.InlineExpressionParser;
 import org.apache.shardingsphere.dbtest.cases.assertion.dml.DMLIntegrateTestCaseAssertion;
 import org.apache.shardingsphere.dbtest.cases.dataset.DataSet;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetColumn;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetMetadata;
 import org.apache.shardingsphere.dbtest.cases.dataset.row.DataSetRow;
+import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLCaseType;
 import org.apache.shardingsphere.dbtest.engine.SingleIT;
-import org.apache.shardingsphere.dbtest.env.DatabaseTypeEnvironment;
 import org.apache.shardingsphere.dbtest.env.EnvironmentPath;
 import org.apache.shardingsphere.dbtest.env.dataset.DataSetEnvironmentManager;
-import org.apache.shardingsphere.test.sql.SQLCaseType;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
+import org.apache.shardingsphere.underlying.common.datanode.DataNode;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -55,9 +55,9 @@ public abstract class BaseDMLIT extends SingleIT {
     
     private final DataSetEnvironmentManager dataSetEnvironmentManager;
     
-    public BaseDMLIT(final String sqlCaseId, final String path, final DMLIntegrateTestCaseAssertion assertion, final String shardingRuleType,
-                     final DatabaseTypeEnvironment databaseTypeEnvironment, final SQLCaseType caseType) throws IOException, JAXBException, SQLException, ParseException {
-        super(sqlCaseId, path, assertion, shardingRuleType, databaseTypeEnvironment, caseType);
+    public BaseDMLIT(final String path, final DMLIntegrateTestCaseAssertion assertion, final String ruleType,
+                     final DatabaseType databaseType, final SQLCaseType caseType, final String sql) throws IOException, JAXBException, SQLException, ParseException {
+        super(path, assertion, ruleType, databaseType, caseType, sql);
         dataSetEnvironmentManager = new DataSetEnvironmentManager(EnvironmentPath.getDataInitializeResourceFile(getRuleType()), getDataSourceMap());
     }
     
@@ -73,16 +73,12 @@ public abstract class BaseDMLIT extends SingleIT {
     
     @Before
     public void insertData() throws SQLException, ParseException {
-        if (getDatabaseTypeEnvironment().isEnabled()) {
-            dataSetEnvironmentManager.initialize();
-        }
+        dataSetEnvironmentManager.initialize();
     }
     
     @After
     public void clearData() throws SQLException {
-        if (getDatabaseTypeEnvironment().isEnabled()) {
-            dataSetEnvironmentManager.clear();
-        }
+        dataSetEnvironmentManager.clear();
     }
     
     protected final void assertDataSet(final int actualUpdateCount) throws SQLException, IOException, JAXBException {
@@ -90,15 +86,20 @@ public abstract class BaseDMLIT extends SingleIT {
         try (FileReader reader = new FileReader(getExpectedDataFile())) {
             expected = (DataSet) JAXBContext.newInstance(DataSet.class).createUnmarshaller().unmarshal(reader);
         }
-        assertThat("Only support single table for DML.", expected.getMetadataList().size(), is(1));
-        assertThat(actualUpdateCount, is(expected.getUpdateCount()));
-        DataSetMetadata expectedDataSetMetadata = expected.getMetadataList().get(0);
-        for (String each : new InlineExpressionParser(expectedDataSetMetadata.getDataNodes()).splitAndEvaluate()) {
-            DataNode dataNode = new DataNode(each);
-            try (Connection connection = getDataSourceMap().get(dataNode.getDataSourceName()).getConnection();
-                 PreparedStatement preparedStatement = connection.prepareStatement(String.format("SELECT * FROM %s", dataNode.getTableName()))) {
-                assertDataSet(preparedStatement, expected.findRows(dataNode), expectedDataSetMetadata);
+        try {
+            assertThat("Only support single table for DML.", expected.getMetadataList().size(), is(1));
+            assertThat(actualUpdateCount, is(expected.getUpdateCount()));
+            DataSetMetadata expectedDataSetMetadata = expected.getMetadataList().get(0);
+            for (String each : new InlineExpressionParser(expectedDataSetMetadata.getDataNodes()).splitAndEvaluate()) {
+                DataNode dataNode = new DataNode(each);
+                try (Connection connection = getDataSourceMap().get(dataNode.getDataSourceName()).getConnection();
+                     PreparedStatement preparedStatement = connection.prepareStatement(String.format("SELECT * FROM %s", dataNode.getTableName()))) {
+                    assertDataSet(preparedStatement, expected.findRows(dataNode), expectedDataSetMetadata);
+                }
             }
+        } catch (final AssertionError ex) {
+            System.out.println(String.format("[ERROR] SQL::%s, Parameter::[%s], Expect::%s", getOriginalSQL(), getAssertion().getParameters(), getAssertion().getExpectedDataFile()));
+            throw ex;
         }
     }
     

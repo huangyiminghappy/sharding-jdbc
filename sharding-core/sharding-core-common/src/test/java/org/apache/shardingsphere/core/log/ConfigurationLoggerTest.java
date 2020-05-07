@@ -17,6 +17,7 @@
 
 package org.apache.shardingsphere.core.log;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
@@ -27,14 +28,12 @@ import org.apache.shardingsphere.encrypt.api.EncryptColumnRuleConfiguration;
 import org.apache.shardingsphere.encrypt.api.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.api.EncryptTableRuleConfiguration;
 import org.apache.shardingsphere.encrypt.api.EncryptorRuleConfiguration;
-import org.apache.shardingsphere.underlying.common.constant.properties.PropertiesConstant;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
@@ -104,15 +103,12 @@ public final class ConfigurationLoggerTest {
     }
     
     private EncryptRuleConfiguration getEncryptRuleConfiguration() {
-        EncryptRuleConfiguration result = new EncryptRuleConfiguration();
         Properties properties = new Properties();
         properties.put("aes.key.value", "123456abc");
         EncryptorRuleConfiguration encryptorRuleConfiguration = new EncryptorRuleConfiguration("aes", properties);
-        result.getEncryptors().put("encryptor_aes", encryptorRuleConfiguration);
         EncryptTableRuleConfiguration tableRuleConfiguration =
                 new EncryptTableRuleConfiguration(Collections.singletonMap("user_id", new EncryptColumnRuleConfiguration("user_decrypt", "user_encrypt", "user_assisted", "encryptor_aes")));
-        result.getTables().put("t_encrypt", tableRuleConfiguration);
-        return result;
+        return new EncryptRuleConfiguration(ImmutableMap.of("encryptor_aes", encryptorRuleConfiguration), ImmutableMap.of("t_encrypt", tableRuleConfiguration));
     }
     
     @Test
@@ -160,20 +156,16 @@ public final class ConfigurationLoggerTest {
     
     private Properties getProperties() {
         Properties result = new Properties();
-        result.put(PropertiesConstant.SQL_SHOW.getKey(), Boolean.TRUE.toString());
-        result.put(PropertiesConstant.SQL_SIMPLE.getKey(), Boolean.TRUE.toString());
+        result.put(ConfigurationPropertyKey.SQL_SHOW.getKey(), Boolean.TRUE.toString());
+        result.put(ConfigurationPropertyKey.SQL_SIMPLE.getKey(), Boolean.TRUE.toString());
         return result;
     }
     
     private void assertLogInfo(final String type, final String logContent) {
-        doAnswer(new Answer() {
-            
-            @Override
-            public Void answer(final InvocationOnMock invocationOnMock) {
-                assertThat(invocationOnMock.getArgument(1).toString(), is(type));
-                assertThat(invocationOnMock.getArgument(2).toString(), is(logContent));
-                return null;
-            }
+        doAnswer(invocationOnMock -> {
+            assertThat(invocationOnMock.getArgument(1).toString(), is(type));
+            assertThat(invocationOnMock.getArgument(2).toString(), is(logContent));
+            return null;
         }).when(log).info(anyString(), anyString(), anyString());
     }
 }

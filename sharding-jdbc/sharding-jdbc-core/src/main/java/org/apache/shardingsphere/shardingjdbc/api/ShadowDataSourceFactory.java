@@ -26,6 +26,7 @@ import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShadowDataSou
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -39,10 +40,10 @@ public final class ShadowDataSourceFactory {
     /**
      * Create shadow data source.
      *
-     * @param actualDataSource        actual data source
-     * @param shadowDataSource        shadow data source
+     * @param actualDataSource actual data source
+     * @param shadowDataSource shadow data source
      * @param shadowRuleConfiguration shadow rule configuration
-     * @param props                   properties
+     * @param props properties
      * @return shadow data source
      * @throws SQLException SQL exception
      */
@@ -54,9 +55,9 @@ public final class ShadowDataSourceFactory {
     /**
      * Create shadow data source.
      *
-     * @param dataSourceMap           data sources map
+     * @param dataSourceMap data sources map
      * @param shadowRuleConfiguration shadow rule configuration
-     * @param props                   properties
+     * @param props properties
      * @return shadow data source
      * @throws SQLException SQL exception
      */
@@ -89,7 +90,7 @@ public final class ShadowDataSourceFactory {
         if (shadowRule.isEncrypt()) {
             return EncryptDataSourceFactory.createDataSource(dataSources.values().iterator().next(), shadowRule.getEncryptRuleConfig(), props);
         } else if (shadowRule.isSharding()) {
-            return ShardingDataSourceFactory.createDataSource(dataSources, shadowRule.getShardingRuleConfig(), props);
+            return ShardingDataSourceFactory.createDataSource(dataSources, Collections.singletonList(shadowRule.getShardingRuleConfig()), props);
         } else if (shadowRule.isMasterSlave()) {
             return MasterSlaveDataSourceFactory.createDataSource(dataSources, shadowRule.getMasterSlaveRuleConfig(), props);
         } else {

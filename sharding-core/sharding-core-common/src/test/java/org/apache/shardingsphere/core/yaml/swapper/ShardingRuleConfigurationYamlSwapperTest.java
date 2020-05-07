@@ -17,12 +17,10 @@
 
 package org.apache.shardingsphere.core.yaml.swapper;
 
-import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.KeyGeneratorConfiguration;
 import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.strategy.ShardingStrategyConfiguration;
-import org.apache.shardingsphere.core.yaml.config.masterslave.YamlMasterSlaveRuleConfiguration;
 import org.apache.shardingsphere.core.yaml.config.sharding.YamlKeyGeneratorConfiguration;
 import org.apache.shardingsphere.core.yaml.config.sharding.YamlShardingRuleConfiguration;
 import org.apache.shardingsphere.core.yaml.config.sharding.YamlShardingStrategyConfiguration;
@@ -57,9 +55,6 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
     @Mock
     private KeyGeneratorConfigurationYamlSwapper keyGeneratorConfigurationYamlSwapper;
     
-    @Mock
-    private MasterSlaveRuleConfigurationYamlSwapper masterSlaveRuleConfigurationYamlSwapper;
-    
     private ShardingRuleConfigurationYamlSwapper shardingRuleConfigurationYamlSwapper = new ShardingRuleConfigurationYamlSwapper();
     
     @Before
@@ -73,9 +68,6 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
         setSwapper("keyGeneratorConfigurationYamlSwapper", keyGeneratorConfigurationYamlSwapper);
         when(keyGeneratorConfigurationYamlSwapper.swap(ArgumentMatchers.<KeyGeneratorConfiguration>any())).thenReturn(mock(YamlKeyGeneratorConfiguration.class));
         when(keyGeneratorConfigurationYamlSwapper.swap(ArgumentMatchers.<YamlKeyGeneratorConfiguration>any())).thenReturn(mock(KeyGeneratorConfiguration.class));
-        setSwapper("masterSlaveRuleConfigurationYamlSwapper", masterSlaveRuleConfigurationYamlSwapper);
-        when(masterSlaveRuleConfigurationYamlSwapper.swap(ArgumentMatchers.<MasterSlaveRuleConfiguration>any())).thenReturn(mock(YamlMasterSlaveRuleConfiguration.class));
-        when(masterSlaveRuleConfigurationYamlSwapper.swap(ArgumentMatchers.<YamlMasterSlaveRuleConfiguration>any())).thenReturn(mock(MasterSlaveRuleConfiguration.class));
     }
     
     private void setSwapper(final String swapperFieldName, final YamlSwapper swapperFieldValue) throws ReflectiveOperationException {
@@ -92,11 +84,9 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
         assertThat(actual.getTables().size(), is(1));
         assertTrue(actual.getBindingTables().isEmpty());
         assertTrue(actual.getBroadcastTables().isEmpty());
-        assertNull(actual.getDefaultDataSourceName());
         assertNull(actual.getDefaultDatabaseStrategy());
         assertNull(actual.getDefaultTableStrategy());
         assertNull(actual.getDefaultKeyGenerator());
-        assertTrue(actual.getMasterSlaveRules().isEmpty());
     }
     
     @Test
@@ -105,22 +95,18 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
         shardingRuleConfiguration.getTableRuleConfigs().add(mock(TableRuleConfiguration.class));
         shardingRuleConfiguration.getBindingTableGroups().add("tbl, sub_tbl");
         shardingRuleConfiguration.getBroadcastTables().add("dict");
-        shardingRuleConfiguration.setDefaultDataSourceName("ds");
         shardingRuleConfiguration.setDefaultDatabaseShardingStrategyConfig(mock(ShardingStrategyConfiguration.class));
         shardingRuleConfiguration.setDefaultTableShardingStrategyConfig(mock(ShardingStrategyConfiguration.class));
         shardingRuleConfiguration.setDefaultKeyGeneratorConfig(mock(KeyGeneratorConfiguration.class));
-        shardingRuleConfiguration.getMasterSlaveRuleConfigs().add(mock(MasterSlaveRuleConfiguration.class));
         YamlShardingRuleConfiguration actual = shardingRuleConfigurationYamlSwapper.swap(shardingRuleConfiguration);
         assertThat(actual.getTables().size(), is(1));
         assertThat(actual.getBindingTables().size(), is(1));
         assertThat(actual.getBindingTables().iterator().next(), is("tbl, sub_tbl"));
         assertThat(actual.getBroadcastTables().size(), is(1));
         assertThat(actual.getBroadcastTables().iterator().next(), is("dict"));
-        assertThat(actual.getDefaultDataSourceName(), is("ds"));
         assertNotNull(actual.getDefaultDatabaseStrategy());
         assertNotNull(actual.getDefaultTableStrategy());
         assertNotNull(actual.getDefaultKeyGenerator());
-        assertThat(actual.getMasterSlaveRules().size(), is(1));
     }
     
     @Test
@@ -131,11 +117,9 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
         assertThat(actual.getTableRuleConfigs().size(), is(1));
         assertTrue(actual.getBindingTableGroups().isEmpty());
         assertTrue(actual.getBroadcastTables().isEmpty());
-        assertNull(actual.getDefaultDataSourceName());
         assertNull(actual.getDefaultDatabaseShardingStrategyConfig());
         assertNull(actual.getDefaultTableShardingStrategyConfig());
         assertNull(actual.getDefaultKeyGeneratorConfig());
-        assertTrue(actual.getMasterSlaveRuleConfigs().isEmpty());
     }
     
     @Test
@@ -144,21 +128,17 @@ public final class ShardingRuleConfigurationYamlSwapperTest {
         yamlConfiguration.getTables().put("tbl", mock(YamlTableRuleConfiguration.class));
         yamlConfiguration.getBindingTables().add("tbl, sub_tbl");
         yamlConfiguration.getBroadcastTables().add("dict");
-        yamlConfiguration.setDefaultDataSourceName("ds");
         yamlConfiguration.setDefaultDatabaseStrategy(mock(YamlShardingStrategyConfiguration.class));
         yamlConfiguration.setDefaultTableStrategy(mock(YamlShardingStrategyConfiguration.class));
         yamlConfiguration.setDefaultKeyGenerator(mock(YamlKeyGeneratorConfiguration.class));
-        yamlConfiguration.getMasterSlaveRules().put("ds", mock(YamlMasterSlaveRuleConfiguration.class));
         ShardingRuleConfiguration actual = shardingRuleConfigurationYamlSwapper.swap(yamlConfiguration);
         assertThat(actual.getTableRuleConfigs().size(), is(1));
         assertThat(actual.getBindingTableGroups().size(), is(1));
         assertThat(actual.getBindingTableGroups().iterator().next(), is("tbl, sub_tbl"));
         assertThat(actual.getBroadcastTables().size(), is(1));
         assertThat(actual.getBroadcastTables().iterator().next(), is("dict"));
-        assertThat(actual.getDefaultDataSourceName(), is("ds"));
         assertNotNull(actual.getDefaultDatabaseShardingStrategyConfig());
         assertNotNull(actual.getDefaultTableShardingStrategyConfig());
         assertNotNull(actual.getDefaultKeyGeneratorConfig());
-        assertThat(actual.getMasterSlaveRuleConfigs().size(), is(1));
     }
 }

@@ -20,15 +20,15 @@ package org.apache.shardingsphere.shardingproxy.backend.schema;
 import com.google.common.base.Strings;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
+import org.apache.shardingsphere.orchestration.core.common.event.SchemaAddedEvent;
+import org.apache.shardingsphere.orchestration.core.common.event.SchemaDeletedEvent;
 import org.apache.shardingsphere.underlying.common.config.RuleConfiguration;
 import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
-import org.apache.shardingsphere.orchestration.internal.eventbus.ShardingOrchestrationEventBus;
-import org.apache.shardingsphere.orchestration.internal.registry.config.event.SchemaAddedEvent;
-import org.apache.shardingsphere.orchestration.internal.registry.config.event.SchemaDeletedEvent;
+import org.apache.shardingsphere.orchestration.core.common.eventbus.ShardingOrchestrationEventBus;
 import org.apache.shardingsphere.shardingproxy.backend.communication.jdbc.recognizer.JDBCDriverURLRecognizerEngine;
 import org.apache.shardingsphere.shardingproxy.config.yaml.YamlDataSourceParameter;
 import org.apache.shardingsphere.shardingproxy.util.DataSourceConverter;
-import org.apache.shardingsphere.spi.database.type.DatabaseType;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -67,17 +67,6 @@ public final class LogicSchemas {
     /**
      * Initialize proxy context.
      *
-     * @param schemaDataSources data source map
-     * @param schemaRules schema rule map
-     * @throws SQLException SQL exception
-     */
-    public void init(final Map<String, Map<String, YamlDataSourceParameter>> schemaDataSources, final Map<String, RuleConfiguration> schemaRules) throws SQLException {
-        init(schemaRules.keySet(), schemaDataSources, schemaRules, false);
-    }
-    
-    /**
-     * Initialize proxy context.
-     *
      * @param localSchemaNames local schema names
      * @param schemaDataSources data source map
      * @param schemaRules schema rule map
@@ -85,19 +74,19 @@ public final class LogicSchemas {
      * @throws SQLException SQL exception
      */
     public void init(final Collection<String> localSchemaNames, final Map<String, Map<String, YamlDataSourceParameter>> schemaDataSources,
-                     final Map<String, RuleConfiguration> schemaRules, final boolean isUsingRegistry) throws SQLException {
+                     final Map<String, Collection<RuleConfiguration>> schemaRules, final boolean isUsingRegistry) throws SQLException {
         databaseType = DatabaseTypes.getActualDatabaseType(
                 JDBCDriverURLRecognizerEngine.getJDBCDriverURLRecognizer(schemaDataSources.values().iterator().next().values().iterator().next().getUrl()).getDatabaseType());
         initSchemas(localSchemaNames, schemaDataSources, schemaRules, isUsingRegistry);
     }
     
     private void initSchemas(final Collection<String> localSchemaNames, final Map<String, Map<String, YamlDataSourceParameter>> schemaDataSources, 
-                             final Map<String, RuleConfiguration> schemaRules, final boolean isUsingRegistry) throws SQLException {
+                             final Map<String, Collection<RuleConfiguration>> schemaRules, final boolean isUsingRegistry) throws SQLException {
         if (schemaRules.isEmpty()) {
             String schema = schemaDataSources.keySet().iterator().next();
             logicSchemas.put(schema, LogicSchemaFactory.newInstance(schema, schemaDataSources, null, isUsingRegistry));
         }
-        for (Entry<String, RuleConfiguration> entry : schemaRules.entrySet()) {
+        for (Entry<String, Collection<RuleConfiguration>> entry : schemaRules.entrySet()) {
             if (localSchemaNames.isEmpty() || localSchemaNames.contains(entry.getKey())) {
                 logicSchemas.put(entry.getKey(), LogicSchemaFactory.newInstance(entry.getKey(), schemaDataSources, entry.getValue(), isUsingRegistry));
             }
@@ -111,7 +100,7 @@ public final class LogicSchemas {
      * @return schema exists or not
      */
     public boolean schemaExists(final String schema) {
-        return logicSchemas.keySet().contains(schema);
+        return logicSchemas.containsKey(schema);
     }
     
     /**
@@ -143,7 +132,7 @@ public final class LogicSchemas {
     public synchronized void renew(final SchemaAddedEvent schemaAddedEvent) throws SQLException {
         logicSchemas.put(schemaAddedEvent.getShardingSchemaName(), LogicSchemaFactory.newInstance(schemaAddedEvent.getShardingSchemaName(), 
                 Collections.singletonMap(schemaAddedEvent.getShardingSchemaName(), DataSourceConverter.getDataSourceParameterMap(schemaAddedEvent.getDataSourceConfigurations())), 
-                schemaAddedEvent.getRuleConfiguration(), true));
+                schemaAddedEvent.getRuleConfigurations(), true));
     }
     
     /**

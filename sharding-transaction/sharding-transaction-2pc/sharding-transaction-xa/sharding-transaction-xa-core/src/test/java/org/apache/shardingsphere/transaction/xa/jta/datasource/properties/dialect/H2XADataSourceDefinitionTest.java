@@ -17,13 +17,9 @@
 
 package org.apache.shardingsphere.transaction.xa.jta.datasource.properties.dialect;
 
-import org.apache.shardingsphere.underlying.common.config.DatabaseAccessConfiguration;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -32,14 +28,6 @@ public final class H2XADataSourceDefinitionTest {
     
     @Test
     public void assertGetXADriverClassName() {
-        assertThat(new H2XADataSourceDefinition().getXADriverClassName(), CoreMatchers.<Collection<String>>is(Collections.singletonList("org.h2.jdbcx.JdbcDataSource")));
-    }
-    
-    @Test
-    public void assertGetXAProperties() {
-        Properties actual = new H2XADataSourceDefinition().getXAProperties(new DatabaseAccessConfiguration("jdbc:h2:mem:db0;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL", "root", "root"));
-        assertThat(actual.getProperty("user"), is("root"));
-        assertThat(actual.getProperty("password"), is("root"));
-        assertThat(actual.getProperty("URL"), is("jdbc:h2:mem:db0;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false;MODE=MYSQL"));
+        assertThat(new H2XADataSourceDefinition().getXADriverClassName(), is(Collections.singletonList("org.h2.jdbcx.JdbcDataSource")));
     }
 }

@@ -17,32 +17,34 @@
 
 package org.apache.shardingsphere.dbtest.engine.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
-import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
+import lombok.SneakyThrows;
 import org.apache.shardingsphere.dbtest.cases.assertion.IntegrateTestCasesLoader;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCase;
 import org.apache.shardingsphere.dbtest.cases.assertion.root.IntegrateTestCaseAssertion;
+import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLCaseType;
 import org.apache.shardingsphere.dbtest.engine.SQLType;
-import org.apache.shardingsphere.dbtest.env.DatabaseTypeEnvironment;
 import org.apache.shardingsphere.dbtest.env.IntegrateTestEnvironment;
-import org.apache.shardingsphere.spi.database.type.DatabaseType;
-import org.apache.shardingsphere.sql.parser.SQLParseEngineFactory;
-import org.apache.shardingsphere.test.sql.SQLCaseType;
-import org.apache.shardingsphere.test.sql.loader.SQLCasesLoader;
-import org.apache.shardingsphere.test.sql.loader.SQLCasesRegistry;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
+import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Integrate test parameters.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IntegrateTestParameters {
-    
-    private static SQLCasesLoader sqlCasesLoader = SQLCasesRegistry.getInstance().getSqlCasesLoader();
     
     private static IntegrateTestCasesLoader integrateTestCasesLoader = IntegrateTestCasesLoader.getInstance();
     
@@ -55,30 +57,28 @@ public final class IntegrateTestParameters {
      * @return integrate test parameters.
      */
     public static Collection<Object[]> getParametersWithAssertion(final SQLType sqlType) {
-        // TODO sqlCasesLoader size should eq integrateTestCasesLoader size
-        // assertThat(sqlCasesLoader.countAllSupportedSQLCases(), is(integrateTestCasesLoader.countAllDataSetTestCases()));
-        Collection<Object[]> result = new LinkedList<>();
-        for (Object[] each : sqlCasesLoader.getSQLTestParameters()) {
-            String sqlCaseId = each[0].toString();
-            String databaseType = each[1].toString();
-            SQLCaseType caseType = (SQLCaseType) each[2];
-            Class<?> sqlStatementClass = SQLParseEngineFactory.getSQLParseEngine(
-                    DatabaseTypes.getTrunkDatabaseType(databaseType).getName()).parse(sqlCasesLoader.getSQL(sqlCaseId, SQLCaseType.Placeholder, Collections.emptyList()), false).getClass();
-            if (!sqlType.getSqlStatementClass().isAssignableFrom(sqlStatementClass)) {
-                continue;
+        Map<DatabaseType, Collection<Object[]>> availableCases = new LinkedHashMap<>();
+        Map<DatabaseType, Collection<Object[]>> disabledCases = new LinkedHashMap<>();
+        integrateTestCasesLoader.getTestCases(sqlType).forEach(integrateTestCase -> getDatabaseTypes(integrateTestCase.getDbTypes()).forEach(databaseType -> {
+            if (IntegrateTestEnvironment.getInstance().getDatabaseTypes().contains(databaseType)) {
+                availableCases.putIfAbsent(databaseType, new LinkedList<>());
+                Arrays.stream(SQLCaseType.values()).forEach(sqlCaseType -> availableCases.get(databaseType).addAll(getParametersWithAssertion(databaseType, sqlCaseType, integrateTestCase)));
+            } else {
+                disabledCases.putIfAbsent(databaseType, new LinkedList<>());
+                Arrays.stream(SQLCaseType.values()).forEach(sqlCaseType -> disabledCases.get(databaseType).addAll(getParametersWithAssertion(databaseType, sqlCaseType, integrateTestCase)));
             }
-            IntegrateTestCase integrateTestCase = getIntegrateTestCase(sqlCaseId, sqlType);
-            // TODO remove when transfer finished
-            if (null == integrateTestCase) {
-                continue;
-            }
-            result.addAll(getParametersWithAssertion(DatabaseTypes.getActualDatabaseType(databaseType), caseType, integrateTestCase));
-        }
-        return result;
+        }));
+        printTestPlan(availableCases, disabledCases, calculateRunnableTestAnnotation());
+        return availableCases.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
     
+    @SneakyThrows
     private static Collection<Object[]> getParametersWithAssertion(final DatabaseType databaseType, final SQLCaseType caseType, final IntegrateTestCase integrateTestCase) {
         Collection<Object[]> result = new LinkedList<>();
+        if (integrateTestCase.getIntegrateTestCaseAssertions().isEmpty()) {
+            result.addAll(getParametersWithAssertion(integrateTestCase, null, databaseType, caseType));
+            return result;
+        }
         for (IntegrateTestCaseAssertion each : integrateTestCase.getIntegrateTestCaseAssertions()) {
             result.addAll(getParametersWithAssertion(integrateTestCase, each, databaseType, caseType));
         }
@@ -90,12 +90,12 @@ public final class IntegrateTestParameters {
         Collection<Object[]> result = new LinkedList<>();
         for (String each : integrateTestEnvironment.getRuleTypes()) {
             Object[] data = new Object[6];
-            data[0] = integrateTestCase.getSqlCaseId();
-            data[1] = integrateTestCase.getPath();
-            data[2] = assertion;
-            data[3] = each;
-            data[4] = new DatabaseTypeEnvironment(databaseType, IntegrateTestEnvironment.getInstance().getDatabaseTypes().contains(databaseType));
-            data[5] = caseType;
+            data[0] = integrateTestCase.getPath();
+            data[1] = assertion;
+            data[2] = each;
+            data[3] = databaseType.getName();
+            data[4] = caseType;
+            data[5] = integrateTestCase.getSql();
             result.add(data);
         }
         return result;
@@ -108,57 +108,65 @@ public final class IntegrateTestParameters {
      * @return integrate test parameters.
      */
     public static Collection<Object[]> getParametersWithCase(final SQLType sqlType) {
-        // TODO sqlCasesLoader size should eq integrateTestCasesLoader size
-        // assertThat(sqlCasesLoader.countAllSupportedSQLCases(), is(integrateTestCasesLoader.countAllDataSetTestCases()));
-        Collection<Object[]> result = new LinkedList<>();
-        for (Object[] each : sqlCasesLoader.getSQLTestParameters()) {
-            String sqlCaseId = each[0].toString();
-            String databaseType = each[1].toString();
-            SQLCaseType caseType = (SQLCaseType) each[2];
-            Class<?> sqlStatementClass = SQLParseEngineFactory.getSQLParseEngine(
-                    DatabaseTypes.getTrunkDatabaseType(databaseType).getName()).parse(sqlCasesLoader.getSQL(sqlCaseId, SQLCaseType.Placeholder, Collections.emptyList()), false).getClass();
-            if (!sqlType.getSqlStatementClass().isAssignableFrom(sqlStatementClass)) {
-                continue;
-            }
-            // TODO only for prepared statement for now
-            if (SQLCaseType.Literal == caseType) {
-                continue;
-            }
-            IntegrateTestCase integrateTestCase = getIntegrateTestCase(sqlCaseId, sqlType);
-            // TODO remove when transfer finished
-            if (null == integrateTestCase) {
-                continue;
-            }
-            result.addAll(getParametersWithCase(DatabaseTypes.getActualDatabaseType(databaseType), integrateTestCase));
-        }
-        return result;
+        Map<DatabaseType, Collection<Object[]>> availableCases = new LinkedHashMap<>();
+        Map<DatabaseType, Collection<Object[]>> disabledCases = new LinkedHashMap<>();
+        integrateTestCasesLoader.getTestCases(sqlType).forEach(integrateTestCase ->
+            getDatabaseTypes(integrateTestCase.getDbTypes()).forEach(databaseType -> {
+                if (IntegrateTestEnvironment.getInstance().getDatabaseTypes().contains(databaseType)) {
+                    availableCases.putIfAbsent(databaseType, new LinkedList<>());
+                    availableCases.get(databaseType).addAll(getParametersWithCase(databaseType, integrateTestCase));
+                } else {
+                    disabledCases.putIfAbsent(databaseType, new LinkedList<>());
+                    disabledCases.get(databaseType).addAll(getParametersWithCase(databaseType, integrateTestCase));
+                }
+            }));
+        printTestPlan(availableCases, disabledCases, calculateRunnableTestAnnotation());
+        return availableCases.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
     }
     
     private static Collection<Object[]> getParametersWithCase(final DatabaseType databaseType, final IntegrateTestCase integrateTestCase) {
         Collection<Object[]> result = new LinkedList<>();
         for (String each : integrateTestEnvironment.getRuleTypes()) {
             Object[] data = new Object[4];
-            data[0] = integrateTestCase.getSqlCaseId();
-            data[1] = integrateTestCase;
-            data[2] = each;
-            data[3] = new DatabaseTypeEnvironment(databaseType, IntegrateTestEnvironment.getInstance().getDatabaseTypes().contains(databaseType));
+            data[0] = integrateTestCase;
+            data[1] = each;
+            data[2] = databaseType.getName();
+            data[3] = integrateTestCase.getSql();
             result.add(data);
         }
         return result;
     }
     
-    private static IntegrateTestCase getIntegrateTestCase(final String sqlCaseId, final SQLType sqlType) {
-        switch (sqlType) {
-            case DQL:
-                return integrateTestCasesLoader.getDQLIntegrateTestCase(sqlCaseId);
-            case DML:
-                return integrateTestCasesLoader.getDMLIntegrateTestCase(sqlCaseId);
-            case DDL:
-                return integrateTestCasesLoader.getDDLIntegrateTestCase(sqlCaseId);
-            case DCL:
-                return integrateTestCasesLoader.getDCLIntegrateTestCase(sqlCaseId);
-            default:
-                throw new UnsupportedOperationException(sqlType.name());
+    private static Collection<DatabaseType> getDatabaseTypes(final String databaseTypes) {
+        String candidates = Strings.isNullOrEmpty(databaseTypes) ? "H2,MySQL,Oracle,SQLServer,PostgreSQL" : databaseTypes;
+        return Splitter.on(',').trimResults().splitToList(candidates).stream().map(DatabaseTypes::getActualDatabaseType).collect(Collectors.toList());
+    }
+    
+    private static void printTestPlan(final Map<DatabaseType, Collection<Object[]>> availableCases, final Map<DatabaseType, Collection<Object[]>> disabledCases, final long factor) {
+        Collection<String> activePlan = new LinkedList<>();
+        for (Map.Entry<DatabaseType, Collection<Object[]>> entry : availableCases.entrySet()) {
+            activePlan.add(String.format("%s(%s)", entry.getKey().getName(), entry.getValue().size() * factor));
         }
+        Collection<String> disabledPlan = new LinkedList<>();
+        for (Map.Entry<DatabaseType, Collection<Object[]>> entry : disabledCases.entrySet()) {
+            disabledPlan.add(String.format("%s(%s)", entry.getKey().getName(), entry.getValue().size() * factor));
+        }
+        System.out.println("[INFO] ======= Test Plan =======");
+        String summary = String.format("[%s] Total: %s, Active: %s, Disabled: %s %s",
+            disabledPlan.isEmpty() ? "INFO" : "WARN",
+            (availableCases.values().stream().mapToLong(Collection::size).sum() + disabledCases.values().stream().mapToLong(Collection::size).sum()) * factor,
+            activePlan.isEmpty() ? 0 : Joiner.on(", ").join(activePlan), disabledPlan.isEmpty() ? 0 : Joiner.on(", ").join(disabledPlan), System.lineSeparator());
+        System.out.println(summary);
+    }
+    
+    @SneakyThrows
+    private static long calculateRunnableTestAnnotation() {
+        long result = 0;
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        for (int i = 3; i < stackTraceElements.length; i++) {
+            Class<?> callerClazz = Class.forName(stackTraceElements[i].getClassName());
+            result += Arrays.stream(callerClazz.getMethods()).filter(method -> method.isAnnotationPresent(Test.class)).count();
+        }
+        return result;
     }
 }

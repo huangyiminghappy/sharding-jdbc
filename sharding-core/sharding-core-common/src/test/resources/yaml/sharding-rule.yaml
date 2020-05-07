@@ -59,25 +59,32 @@ shardingRule:
       databaseStrategy: 
         complex:
           shardingColumns: region_id, user_id
-          algorithmClassName: TestDatabaseComplexAlgorithmClassName
+          shardingAlgorithm:
+            type: COMPLEX_TEST
       tableStrategy: 
         complex:
           shardingColumns: region_id, user_id
-          algorithmClassName: TestTableComplexAlgorithmClassName
+          shardingAlgorithm:
+            type: COMPLEX_TEST
     t_stock:
       actualDataNodes: ds_${0..1}.t_stock{0..8}
       databaseStrategy: 
         hint:
-          algorithmClassName: TestDatabaseHintAlgorithmClassName
+          shardingAlgorithm:
+            type: HINT_TEST
       tableStrategy: 
         hint:
-          algorithmClassName: TestTableHintAlgorithmClassName
+          shardingAlgorithm:
+            type: HINT_TEST
     t_order: 
       actualDataNodes: ds_${0..1}.t_order_${0..1}
       tableStrategy: 
-        inline:
+        standard:
           shardingColumn: order_id
-          algorithmExpression: t_order_${order_id % 2}
+          shardingAlgorithm:
+            type: INLINE
+            props:
+              algorithm.expression: t_order_${order_id % 2}
       keyGenerator:
         type: SNOWFLAKE
         column: order_id
@@ -88,32 +95,35 @@ shardingRule:
       tableStrategy:
         standard:
           shardingColumn: order_id
-          preciseAlgorithmClassName: TestPreciseAlgorithmClassName
-          rangeAlgorithmClassName: TestRangeAlgorithmClassName
+          shardingAlgorithm:
+            type: STANDARD_TEST
   bindingTables:
     - t_order, t_order_item
   broadcastTables:
     - t_config
-  defaultDataSourceName: default_ds
   defaultDatabaseStrategy: 
-    inline:
+    standard:
       shardingColumn: order_id
-      algorithmExpression: ds_${order_id % 2}
+      shardingAlgorithm:
+        type: INLINE
+        props:
+          algorithm.expression: ds_${order_id % 2}
   defaultTableStrategy: 
     none:
-  masterSlaveRules:
-    ds_0:
-      masterDataSourceName: master_ds_0
-      slaveDataSourceNames:
-        - master_ds_0_slave_0
-        - master_ds_0_slave_1
-      loadBalanceAlgorithmType: ROUND_ROBIN
-    ds_1:
-      masterDataSourceName: master_ds_1
-      slaveDataSourceNames: 
-        - master_ds_1_slave_0
-        - master_ds_1_slave_1
-      loadBalanceAlgorithmType: RANDOM
+
+masterSlaveRules:
+  ds_0:
+    masterDataSourceName: master_ds_0
+    slaveDataSourceNames:
+      - master_ds_0_slave_0
+      - master_ds_0_slave_1
+    loadBalanceAlgorithmType: ROUND_ROBIN
+  ds_1:
+    masterDataSourceName: master_ds_1
+    slaveDataSourceNames: 
+      - master_ds_1_slave_0
+      - master_ds_1_slave_1
+    loadBalanceAlgorithmType: RANDOM
 
 props:
   sql.show: true

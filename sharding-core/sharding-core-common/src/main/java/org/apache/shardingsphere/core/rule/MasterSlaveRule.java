@@ -20,17 +20,28 @@ package org.apache.shardingsphere.core.rule;
 import lombok.Getter;
 import org.apache.shardingsphere.api.config.masterslave.LoadBalanceStrategyConfiguration;
 import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
-import org.apache.shardingsphere.spi.algorithm.masterslave.MasterSlaveLoadBalanceAlgorithmServiceLoader;
+import org.apache.shardingsphere.spi.ShardingSphereServiceLoader;
 import org.apache.shardingsphere.spi.masterslave.MasterSlaveLoadBalanceAlgorithm;
-import org.apache.shardingsphere.underlying.common.rule.BaseRule;
+import org.apache.shardingsphere.spi.type.TypedSPIRegistry;
+import org.apache.shardingsphere.underlying.common.rule.DataSourceRoutedRule;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Databases and tables master-slave rule.
  */
 @Getter
-public class MasterSlaveRule implements BaseRule {
+public final class MasterSlaveRule implements DataSourceRoutedRule {
+    
+    static {
+        ShardingSphereServiceLoader.register(MasterSlaveLoadBalanceAlgorithm.class);
+    }
     
     private final String name;
     
@@ -42,11 +53,13 @@ public class MasterSlaveRule implements BaseRule {
     
     private final MasterSlaveRuleConfiguration ruleConfiguration;
     
+    private final Collection<String> disabledDataSourceNames = new HashSet<>();
+    
     public MasterSlaveRule(final String name, final String masterDataSourceName, final List<String> slaveDataSourceNames, final MasterSlaveLoadBalanceAlgorithm loadBalanceAlgorithm) {
         this.name = name;
         this.masterDataSourceName = masterDataSourceName;
         this.slaveDataSourceNames = slaveDataSourceNames;
-        this.loadBalanceAlgorithm = null == loadBalanceAlgorithm ? new MasterSlaveLoadBalanceAlgorithmServiceLoader().newService() : loadBalanceAlgorithm;
+        this.loadBalanceAlgorithm = null == loadBalanceAlgorithm ? TypedSPIRegistry.getRegisteredService(MasterSlaveLoadBalanceAlgorithm.class) : loadBalanceAlgorithm;
         ruleConfiguration = new MasterSlaveRuleConfiguration(name, masterDataSourceName, slaveDataSourceNames, 
                 new LoadBalanceStrategyConfiguration(this.loadBalanceAlgorithm.getType(), this.loadBalanceAlgorithm.getProperties()));
     }
@@ -60,9 +73,8 @@ public class MasterSlaveRule implements BaseRule {
     }
     
     private MasterSlaveLoadBalanceAlgorithm createMasterSlaveLoadBalanceAlgorithm(final LoadBalanceStrategyConfiguration loadBalanceStrategyConfiguration) {
-        MasterSlaveLoadBalanceAlgorithmServiceLoader serviceLoader = new MasterSlaveLoadBalanceAlgorithmServiceLoader();
-        return null == loadBalanceStrategyConfiguration
-                ? serviceLoader.newService() : serviceLoader.newService(loadBalanceStrategyConfiguration.getType(), loadBalanceStrategyConfiguration.getProperties());
+        return null == loadBalanceStrategyConfiguration ? TypedSPIRegistry.getRegisteredService(MasterSlaveLoadBalanceAlgorithm.class)
+                : TypedSPIRegistry.getRegisteredService(MasterSlaveLoadBalanceAlgorithm.class, loadBalanceStrategyConfiguration.getType(), loadBalanceStrategyConfiguration.getProperties());
     }
     
     /**
@@ -73,5 +85,38 @@ public class MasterSlaveRule implements BaseRule {
      */
     public boolean containDataSourceName(final String dataSourceName) {
         return masterDataSourceName.equals(dataSourceName) || slaveDataSourceNames.contains(dataSourceName);
+    }
+    
+    /**
+     * Get slave data source names.
+     *
+     * @return available slave data source names
+     */
+    public List<String> getSlaveDataSourceNames() {
+        return slaveDataSourceNames.stream().filter(each -> !disabledDataSourceNames.contains(each)).collect(Collectors.toList());
+    }
+    
+    /**
+     * Update disabled data source names.
+     *
+     * @param dataSourceName data source name
+     * @param isDisabled is disabled
+     */
+    public void updateDisabledDataSourceNames(final String dataSourceName, final boolean isDisabled) {
+        if (isDisabled) {
+            disabledDataSourceNames.add(dataSourceName);
+        } else {
+            disabledDataSourceNames.remove(dataSourceName);
+        }
+    }
+    
+    @Override
+    public Map<String, Collection<String>> getDataSourceMapper() {
+        Map<String, Collection<String>> result = new HashMap<>();
+        Collection<String> actualDataSourceNames = new LinkedList<>();
+        actualDataSourceNames.add(masterDataSourceName);
+        actualDataSourceNames.addAll(slaveDataSourceNames);
+        result.put(name, actualDataSourceNames);
+        return result;
     }
 }

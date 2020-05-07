@@ -17,25 +17,26 @@
 
 package org.apache.shardingsphere.shardingjdbc.orchestration.internal.datasource;
 
-import java.util.HashMap;
 import lombok.SneakyThrows;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.shardingsphere.api.config.masterslave.LoadBalanceStrategyConfiguration;
 import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
-import org.apache.shardingsphere.orchestration.center.configuration.InstanceConfiguration;
-import org.apache.shardingsphere.orchestration.center.configuration.OrchestrationConfiguration;
-import org.apache.shardingsphere.orchestration.constant.OrchestrationType;
-import org.apache.shardingsphere.orchestration.internal.registry.config.event.DataSourceChangedEvent;
-import org.apache.shardingsphere.orchestration.internal.registry.config.event.PropertiesChangedEvent;
-import org.apache.shardingsphere.orchestration.internal.registry.config.event.ShardingRuleChangedEvent;
-import org.apache.shardingsphere.orchestration.internal.registry.state.event.DisabledStateChangedEvent;
-import org.apache.shardingsphere.orchestration.internal.registry.state.schema.OrchestrationShardingSchema;
+import org.apache.shardingsphere.core.rule.MasterSlaveRule;
+import org.apache.shardingsphere.core.rule.ShardingRule;
+import org.apache.shardingsphere.orchestration.center.config.CenterConfiguration;
+import org.apache.shardingsphere.orchestration.center.config.OrchestrationConfiguration;
+import org.apache.shardingsphere.orchestration.core.common.CenterType;
+import org.apache.shardingsphere.orchestration.core.common.event.DataSourceChangedEvent;
+import org.apache.shardingsphere.orchestration.core.common.event.PropertiesChangedEvent;
+import org.apache.shardingsphere.orchestration.core.common.event.ShardingRuleChangedEvent;
+import org.apache.shardingsphere.orchestration.core.registrycenter.event.DisabledStateChangedEvent;
+import org.apache.shardingsphere.orchestration.core.registrycenter.schema.OrchestrationShardingSchema;
 import org.apache.shardingsphere.shardingjdbc.api.yaml.YamlShardingDataSourceFactory;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource;
 import org.apache.shardingsphere.underlying.common.config.DataSourceConfiguration;
-import org.apache.shardingsphere.underlying.common.constant.ShardingConstant;
+import org.apache.shardingsphere.underlying.common.database.DefaultSchema;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -44,14 +45,18 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public final class OrchestrationShardingDataSourceTest {
     
@@ -68,24 +73,33 @@ public final class OrchestrationShardingDataSourceTest {
     }
     
     private static OrchestrationConfiguration getOrchestrationConfiguration() {
-        Map<String, InstanceConfiguration> instanceConfigurationMap = new HashMap<>();
+        Map<String, CenterConfiguration> instanceConfigurationMap = new HashMap<>();
         instanceConfigurationMap.put("test_sharding_registry_name", getRegistryCenterConfiguration());
         instanceConfigurationMap.put("test_sharding_config_name", getConfigCenterConfiguration());
+        instanceConfigurationMap.put("test_sharding_metadata_name", getMetaDataCenterConfiguration());
         return new OrchestrationConfiguration(instanceConfigurationMap);
     }
     
-    private static InstanceConfiguration getRegistryCenterConfiguration() {
-        InstanceConfiguration result = new InstanceConfiguration("FourthTestRegistryCenter");
-        result.setOrchestrationType(OrchestrationType.REGISTRY_CENTER.getValue());
+    private static CenterConfiguration getRegistryCenterConfiguration() {
+        CenterConfiguration result = new CenterConfiguration("FourthTestRegistryCenter");
+        result.setOrchestrationType(CenterType.REGISTRY_CENTER.getValue());
         result.setNamespace("test_sharding_registry");
         result.setServerLists("localhost:3181");
         return result;
     }
     
-    private static InstanceConfiguration getConfigCenterConfiguration() {
-        InstanceConfiguration result = new InstanceConfiguration("FourthTestConfigCenter");
-        result.setOrchestrationType(OrchestrationType.CONFIG_CENTER.getValue());
+    private static CenterConfiguration getConfigCenterConfiguration() {
+        CenterConfiguration result = new CenterConfiguration("FourthTestConfigCenter");
+        result.setOrchestrationType(CenterType.CONFIG_CENTER.getValue());
         result.setNamespace("test_sharding_config");
+        result.setServerLists("localhost:3181");
+        return result;
+    }
+    
+    private static CenterConfiguration getMetaDataCenterConfiguration() {
+        CenterConfiguration result = new CenterConfiguration("FirstTestMetaDataCenter");
+        result.setOrchestrationType(CenterType.METADATA_CENTER.getValue());
+        result.setNamespace("test_encrypt_metadata");
         result.setServerLists("localhost:3181");
         return result;
     }
@@ -99,14 +113,13 @@ public final class OrchestrationShardingDataSourceTest {
     
     @Test
     public void assertRenewRule() {
-        shardingDataSource.renew(new ShardingRuleChangedEvent(ShardingConstant.LOGIC_SCHEMA_NAME, getShardingRuleConfig()));
-        assertThat(shardingDataSource.getDataSource().getRuntimeContext().getRule().getTableRules().size(), is(1));
+        shardingDataSource.renew(new ShardingRuleChangedEvent(DefaultSchema.LOGIC_NAME, Arrays.asList(getShardingRuleConfiguration(), getMasterSlaveRuleConfiguration())));
+        assertThat(((ShardingRule) shardingDataSource.getDataSource().getRuntimeContext().getRules().iterator().next()).getTableRules().size(), is(1));
     }
     
-    private ShardingRuleConfiguration getShardingRuleConfig() {
+    private ShardingRuleConfiguration getShardingRuleConfiguration() {
         ShardingRuleConfiguration result = new ShardingRuleConfiguration();
         result.getTableRuleConfigs().add(new TableRuleConfiguration("logic_table", "ds_ms.table_${0..1}"));
-        result.getMasterSlaveRuleConfigs().add(getMasterSlaveRuleConfiguration());
         return result;
     }
     
@@ -116,7 +129,7 @@ public final class OrchestrationShardingDataSourceTest {
     
     @Test
     public void assertRenewDataSource() {
-        shardingDataSource.renew(new DataSourceChangedEvent(ShardingConstant.LOGIC_SCHEMA_NAME, getDataSourceConfigurations()));
+        shardingDataSource.renew(new DataSourceChangedEvent(DefaultSchema.LOGIC_NAME, getDataSourceConfigurations()));
         assertThat(shardingDataSource.getDataSource().getDataSourceMap().size(), is(3));
         
     }
@@ -149,7 +162,10 @@ public final class OrchestrationShardingDataSourceTest {
     @Test
     public void assertRenewDisabledState() {
         shardingDataSource.renew(getDisabledStateChangedEvent());
-        assertThat(shardingDataSource.getDataSource().getRuntimeContext().getRule().getMasterSlaveRules().iterator().next().getSlaveDataSourceNames().size(), is(0));
+        Optional<MasterSlaveRule> masterSlaveRule = shardingDataSource.getDataSource().getRuntimeContext().getRules().stream().filter(
+            each -> each instanceof MasterSlaveRule).findFirst().map(rule -> (MasterSlaveRule) rule);
+        assertTrue(masterSlaveRule.isPresent());
+        assertThat(masterSlaveRule.get().getSlaveDataSourceNames().size(), is(0));
     }
     
     private DisabledStateChangedEvent getDisabledStateChangedEvent() {

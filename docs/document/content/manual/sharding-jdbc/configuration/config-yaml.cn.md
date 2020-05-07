@@ -1,5 +1,4 @@
 +++
-toc = true
 title = "Yaml配置"
 weight = 2
 +++
@@ -295,93 +294,6 @@ orchestration:
 ### 数据分片
 
 ```yaml
-dataSources:
-  ds0: !!org.apache.commons.dbcp.BasicDataSource
-    driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ds0
-    username: root
-    password: 
-  ds1: !!org.apache.commons.dbcp.BasicDataSource
-    driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ds1
-    username: root
-    password: 
-
-shardingRule:  
-  tables:
-    t_order: 
-      actualDataNodes: ds${0..1}.t_order${0..1}
-      databaseStrategy:
-        inline:
-          shardingColumn: user_id
-          algorithmExpression: ds${user_id % 2}
-      tableStrategy: 
-        inline:
-          shardingColumn: order_id
-          algorithmExpression: t_order${order_id % 2}
-      keyGenerator:
-        type: SNOWFLAKE
-        column: order_id
-    t_order_item:
-      actualDataNodes: ds${0..1}.t_order_item${0..1}
-      databaseStrategy:
-        inline:
-          shardingColumn: user_id
-          algorithmExpression: ds${user_id % 2}
-      tableStrategy:
-        inline:
-          shardingColumn: order_id
-          algorithmExpression: t_order_item${order_id % 2}  
-  bindingTables:
-    - t_order,t_order_item
-  broadcastTables:
-    - t_config
-  
-  defaultDataSourceName: ds0
-  defaultTableStrategy:
-    none:
-  defaultKeyGenerator:
-    type: SNOWFLAKE
-    column: order_id
-  
-props:
-  sql.show: true
-```
-
-### 读写分离
-
-```yaml
-dataSources:
-  ds_master: !!org.apache.commons.dbcp.BasicDataSource
-    driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ds_master
-    username: root
-    password: 
-  ds_slave0: !!org.apache.commons.dbcp.BasicDataSource
-    driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ds_slave0
-    username: root
-    password: 
-  ds_slave1: !!org.apache.commons.dbcp.BasicDataSource
-    driverClassName: com.mysql.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ds_slave1
-    username: root
-    password: 
-
-masterSlaveRule:
-  name: ds_ms
-  masterDataSourceName: ds_master
-  slaveDataSourceNames: 
-    - ds_slave0
-    - ds_slave1
-
-props:
-    sql.show: true
-```
-
-### 数据分片
-
-```yaml
 dataSources: #数据源配置，可配置多个data_source_name
   <data_source_name>: #<!!数据库连接池实现类> `!!`表示实例化该类
     driverClassName: #数据库驱动类名
@@ -412,7 +324,7 @@ shardingRule:
       tableStrategy: #分表策略，同分库策略
       keyGenerator: 
         column: #自增列名称，缺省表示不使用自增主键生成器
-        type: #自增列值生成器类型，缺省表示使用默认自增列值生成器。可使用用户自定义的列值生成器或选择内置类型：SNOWFLAKE/UUID/LEAF_SEGMENT
+        type: #自增列值生成器类型，缺省表示使用默认自增列值生成器。可使用用户自定义的列值生成器或选择内置类型：SNOWFLAKE/UUID
         props: #属性配置, 注意：使用SNOWFLAKE算法，需要配置worker.id与max.tolerate.time.difference.milliseconds属性。若使用此算法生成值作分片值，建议配置max.vibration.offset属性
           <property-name>: 属性名称
       
@@ -429,7 +341,7 @@ shardingRule:
   defaultDatabaseStrategy: #默认数据库分片策略，同分库策略
   defaultTableStrategy: #默认表分片策略，同分库策略
   defaultKeyGenerator: #默认的主键生成算法 如果没有设置,默认为SNOWFLAKE算法
-    type: #默认自增列值生成器类型，缺省将使用org.apache.shardingsphere.core.keygen.generator.impl.SnowflakeKeyGenerator。可使用用户自定义的列值生成器或选择内置类型：SNOWFLAKE/UUID/LEAF_SEGMENT
+    type: #默认自增列值生成器类型，缺省将使用org.apache.shardingsphere.core.keygen.generator.impl.SnowflakeKeyGenerator。可使用用户自定义的列值生成器或选择内置类型：SNOWFLAKE/UUID
     props:
       <property-name>: #自增列值生成器属性配置, 比如SNOWFLAKE算法的worker.id与max.tolerate.time.difference.milliseconds
 

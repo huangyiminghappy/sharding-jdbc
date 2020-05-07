@@ -1,12 +1,11 @@
 +++
-toc = true
 title = "Java Configuration"
 weight = 1
 +++
 
 ## Configuration Instance
 
-The implementation of DataSource in the following configuration is [DataSourceUtil](https://github.com/geomonlin/incubator-shardingsphere-example/blob/4.0.0-RC2/example-core/example-api/src/main/java/org/apache/shardingsphere/example/core/api/DataSourceUtil.java)，The ModuloShardingTableAlgorithm class needs user-defined. For a detailed example [ModuloShardingTableAlgorithm](https://github.com/geomonlin/incubator-shardingsphere-example/tree/dev/example-core/config-utility/src/main/java/org/apache/shardingsphere/example/algorithm) 
+The implementation of DataSource in the following configuration is [DataSourceUtil](https://github.com/geomonlin/shardingsphere-example/blob/4.0.0-RC2/example-core/example-api/src/main/java/org/apache/shardingsphere/example/core/api/DataSourceUtil.java)，The ModuloShardingTableAlgorithm class needs user-defined. For a detailed example [ModuloShardingTableAlgorithm](https://github.com/geomonlin/incubator-shardingsphere-example/tree/dev/example-core/config-utility/src/main/java/org/apache/shardingsphere/example/algorithm) 
 
 ### Data Sharding
 
@@ -186,17 +185,25 @@ The implementation of DataSource in the following configuration is [DataSourceUt
 
 ```java
     DataSource getDataSource() throws SQLException {
-        // OrchestrationShardingDataSourceFactory can be replaced by OrchestrationMasterSlaveDataSourceFactory or OrchestrationEncryptDataSourceFactory
+        // OrchestrationShardingDataSourceFactory 可替换成 OrchestrationMasterSlaveDataSourceFactory 或 OrchestrationEncryptDataSourceFactory
         return OrchestrationShardingDataSourceFactory.createDataSource(
                 createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(), 
-                new OrchestrationConfiguration("orchestration-sharding-data-source", getRegistryCenterConfiguration(), false));
+                new OrchestrationConfiguration(createCenterConfigurationMap()));
     }
-    
-    private RegistryCenterConfiguration getRegistryCenterConfiguration() {
-        RegistryCenterConfiguration regConfig = new RegistryCenterConfiguration("zookeeper");//The type of registry center can be Zookeeper, Etcd and so on
-        regConfig.setServerLists("localhost:2181");
-        regConfig.setNamespace("sharding-sphere-orchestration");
-        return regConfig;
+    private Map<String, CenterConfiguration> createCenterConfigurationMap() {
+        Map<String, CenterConfiguration> instanceConfigurationMap = new HashMap<String, CenterConfiguration>();
+        CenterConfiguration config = createCenterConfiguration();
+        instanceConfigurationMap.put("orchestration-sharding-data-source", config);
+        return instanceConfigurationMap;
+    }
+    private CenterConfiguration createCenterConfiguration() {
+        Properties properties = new Properties();
+        properties.setProperty("overwrite", overwrite);
+        CenterConfiguration result = new CenterConfiguration("zookeeper", properties);
+        result.setServerLists("localhost:2181");
+        result.setNamespace("sharding-sphere-orchestration");
+        result.setOrchestrationType("registry_center,config_center");
+        return result;
     }
 ```
 
@@ -222,7 +229,7 @@ The implementation of DataSource in the following configuration is [DataSourceUt
 | defaultDataSourceName (?)                 | String                                     | Tables not configured with sharding rules will locate according to default data sources |
 | defaultDatabaseShardingStrategyConfig (?) | ShardingStrategyConfiguration              | Default database sharding strategy                           |
 | defaultTableShardingStrategyConfig (?)    | ShardingStrategyConfiguration              | Default table sharding strategy                              |
-| defaultKeyGeneratorConfig (?)             | KeyGeneratorConfiguration                  | Default key generator configuration, use user-defined ones or built-in ones, e.g. SNOWFLAKE/UUID/LEAF_SEGMENT. Default key generator is `org.apache.shardingsphere.core.keygen.generator.impl.SnowflakeKeyGenerator` |
+| defaultKeyGeneratorConfig (?)             | KeyGeneratorConfiguration                  | Default key generator configuration, use user-defined ones or built-in ones, e.g. SNOWFLAKE/UUID. Default key generator is `org.apache.shardingsphere.core.keygen.generator.impl.SnowflakeKeyGenerator` |
 | masterSlaveRuleConfigs (?)                | Collection\<MasterSlaveRuleConfiguration\> | Read-write split rules, default indicates not using read-write split |
 
 #### TableRuleConfiguration
@@ -279,45 +286,23 @@ The implementation class of `ShardingStrategyConfiguration`, used to configure n
 
 #### KeyGeneratorConfiguration
 
-| *Name*            | *DataType*                   | *Description*                                                                               |
-| ----------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
-| column            | String                       | Column name of key generator                                                                |
-| type              | String                       | Type of key generator, use user-defined ones or built-in ones, e.g. SNOWFLAKE, UUID, LEAF_SEGMENT, LEAF_SNOWFLAKE |
-| props             | Properties                   | The Property configuration of key generators                                                 |
+| *Name* | *DataType* | *Description*                                                |
+| ------ | ---------- | ------------------------------------------------------------ |
+| column | String     | Column name of key generator                                 |
+| type   | String     | Type of key generator, use user-defined ones or built-in ones, e.g. SNOWFLAKE, UUID |
+| props  | Properties | The Property configuration of key generators                 |
 
-#### PropertiesConstant
+#### Properties
 
 Property configuration that can include these properties of these key generators.
 
 ##### SNOWFLAKE
-  
+
 | *Name*                                              | *DataType* | *Explanation*                                                                                                                                                                                                                   |
 | --------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | worker.id (?)                                        |   long     | The unique id for working machine, the default value is `0`                                                                                                                                                                    |
 | max.tolerate.time.difference.milliseconds (?)        |   long     | The max tolerate time for different server's time difference in milliseconds, the default value is `10`                                                                                                                         |
 | max.vibration.offset (?)                             |    int     | The max upper limit value of vibrate number, range `[0, 4096)`, the default value is `1`. Notice: To use the generated value of this algorithm as sharding value, it is recommended to configure this property. The algorithm generates key mod `2^n` (`2^n` is usually the sharding amount of tables or databases) in different milliseconds and the result is always `0` or `1`. To prevent the above sharding problem, it is recommended to configure this property, its value is `(2^n)-1` |
-  
-##### LEAF_SEGMENT
-  
-| *Name*                                | *DataType* | *Explanation*                                                                                                                                                                                |
-| ------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| server.list                           | String     | The server list to connect to registry Center which includes the ip address and port number. To split them with the comma when there are multiple addresses. e.g: `host1:2181,host2:2181` |
-| leaf.key                              | String     | The key which can be used to get the max segment id of table on which `leaf_segment` depends                                                                                                 |
-| leaf.segment.id.initial.value (?)      | long       | The initial value of segment id, the default value is `1`                                                                                                                                   |
-| leaf.segment.step (?)                  | long       | The step size of the segment assigned every time, the default value is `10000`                                                                                                               |
-| registry.center.digest (?)             | String     | Connect to authority tokens in registry center; default indicates no need for authority                                                                                         |
-| registry.center.type (?)               | String     | The type of registry center, the default value is `zookeeper`                                                                                                                               |
-  
-##### LEAF_SNOWFLAKE
-  
-| *Name*                                            | *DataType* | *Explanation*                                                                                                                                                                                                                   |
-| ------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| server.list                                       | String     | The server list to connect to registry Center which includes the ip address and port number. To split them with the comma when there are multiple addresses. e.g: `host1:2181,host2:2181`                                    |
-| service.id                                        | String     | The service id of `leaf_snowflake` in registry center                                                                                                                                                                            |
-| max.tolerate.time.difference.milliseconds (?)      | long       | The max time difference between native and registry center in milliseconds, the default value is `10000`. An exception is thrown when the job starts if threshold exceeded                                                     |
-| registry.center.digest (?)                         | String     | Connect to authority tokens in registry center; default indicates no need for authority                                                                                                                                         |
-| registry.center.type (?)                           | String     | The type of registry center, the default value is `zookeeper`                                                                                                                                                                  |
-| max.vibration.offset (?)                           | int        | The max upper limit value of vibrate number, range `[0, 4096)`, the default value is `1`. Notice: To use the generated value of this algorithm as sharding value, it is recommended to configure this property. The algorithm generates key mod `2^n` (`2^n` is usually the sharding amount of tables or databases) in different milliseconds and the result is always `0` or `1`. To prevent the above sharding problem, it is recommended to configure this property, its value is `(2^n)-1` |
 
 #### EncryptRuleConfiguration
 
@@ -331,7 +316,7 @@ Property configuration that can include these properties of these key generators
 | *Name*              | *DataType*                   | *Explanation*                                                                               |
 | ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------- |
 | type                | String                       | Type of encryptor，use user-defined ones or built-in ones, e.g. MD5/AES                      |
-| properties          | Properties                   | Properties, Notice: when use AES encryptor, `aes.key.value` for AES encryptor need to be set | 
+| properties          | Properties                   | Properties, Notice: when use AES encryptor, `aes.key.value` for AES encryptor need to be set |
 
 #### EncryptTableRuleConfiguration
 
@@ -346,9 +331,9 @@ Property configuration that can include these properties of these key generators
 | plainColumn         | String                       | Plain column name                                                                                     |
 | cipherColumn        | String                       | Cipher column name                                                                                    |
 | assistedQueryColumn | String                       | AssistedColumns for query，when use ShardingQueryAssistedEncryptor, it can help query encrypted data  |
-| encryptor           | String                       | Encryptor name                                                                                        | 
+| encryptor           | String                       | Encryptor name                                                                                        |
 
-#### ShardingPropertiesConstant
+#### Properties
 
 Property configuration items, can be of the following properties.
 
@@ -359,6 +344,7 @@ Property configuration items, can be of the following properties.
 | max.connections.size.per.query (?) | int        | The maximum connection number allocated by each query of each physical database. default value: 1 |
 | check.table.metadata.enabled (?)   | boolean    | Check meta-data consistency or not in initialization, default value: false                        |
 | query.with.cipher.column (?)       | boolean    | When there is a plainColumn, use cipherColumn or not to query, default value: true                |
+| allow.range.query.with.inline.sharding (?)    | boolean   | Allow or not execute range query with inline sharding strategy, default value: false        |
 
 ### Read-Write Split
 
@@ -379,7 +365,7 @@ Property configuration items, can be of the following properties.
 | slaveDataSourceNames     | Collection\<String\>            | Slave database source name list   |
 | loadBalanceAlgorithm (?) | MasterSlaveLoadBalanceAlgorithm | Slave database load balance       |
 
-#### ShardingPropertiesConstant
+#### Properties
 
 Property configuration items, can be of the following properties.
 
@@ -407,7 +393,7 @@ Property configuration items, can be of the following properties.
 | encryptors          | Map<String, EncryptorRuleConfiguration>     | Encryptor names and encryptors                              |
 | tables              | Map<String, EncryptTableRuleConfiguration>  | Encrypt table names and encrypt tables                      |
 
-#### PropertiesConstant
+#### Properties
 
 Property configuration items, can be of the following properties.
 
@@ -451,18 +437,57 @@ Property configuration items, can be of the following properties.
 
 | *Name*          | *Data Type*                 | *Explanation*                                                |
 | --------------- | --------------------------- | ------------------------------------------------------------ |
-| name            | String                      | Orchestration example name                              |
-| overwrite       | boolean                     | Local configurations overwrite registry center configurations or not; if they overwrite, each start takes reference of local configurations |
-| regCenterConfig | RegistryCenterConfiguration | Registry center configurations                               |
+| instanceConfigurationMap | Map\<String, CenterConfiguration\>  | config map of config-center&registry-center，the key is center's name，the value is the config-center/registry-center   |
 
-#### RegistryCenterConfiguration
+
+#### CenterConfiguration
 
 | *Name*                           | *Data Type* | *Explanation*                                                |
 | -------------------------------- | ----------- | ------------------------------------------------------------ |
-| serverLists                      | String      | Connect to server lists in registry center, including IP address and port number; addresses are separated by commas, such as `host1:2181,host2:2181` |
-| namespace (?)                    | String      | Name space of registry center                                |
+| type                              | String     | The type of center instance(zookeeper/etcd/apollo/nacos)                                       |
+| properties                        | String     | Properties for center instance config, such as options of zookeeper                        |
+| orchestrationType                 | String     | The type of orchestration center: config-center or registry-center, if both, use "setOrchestrationType("registry_center,config_center");"                  |
+| serverLists                       | String     | Connect to server lists in center, including IP address and port number; addresses are separated by commas, such as `host1:2181,host2:2181` |
+| namespace (?)                     | String     | Namespace of center instance                                                                    |
+
+Common configuration in properties as follow:
+
+| *Name*                           | *Data Type* | *Explanation*                                                |
+| -------------------------------- | ----------- | ------------------------------------------------------------ |
+| overwrite                         | boolean    | Local configurations overwrite center configurations or not; if they overwrite, each start takes reference of local configurations                          |
+
+If type of center is `zookeeper` with config-center&registry-center, properties could be set with the follow options:
+
+| *Name*                           | *Data Type* | *Explanation*                                                |
+| -------------------------------- | ----------- | ------------------------------------------------------------ |
 | digest (?)                       | String      | Connect to authority tokens in registry center; default indicates no need for authority |
 | operationTimeoutMilliseconds (?) | int         | The operation timeout millisecond number, default to be 500 milliseconds |
 | maxRetries (?)                   | int         | The maximum retry count, default to be 3 times               |
 | retryIntervalMilliseconds (?)    | int         | The retry interval millisecond number, default to be 500 milliseconds |
 | timeToLiveSeconds (?)            | int         | The living time for temporary nodes, default to be 60 seconds |
+
+If type of center is `etcd` with config-center&registry-center, properties could be set with the follow options:
+
+| *Name*                           | *Data Type* | *Explanation*                                                |
+| -------------------------------- | ----------- | ------------------------------------------------------------ |
+| timeToLiveSeconds (?)            | long        | The etcd TTL in seconds, default to be 30 seconds            |
+
+If type of center is `apollo` with config-center&registry-center, properties could be set with the follow options:
+
+| *Name*                           | *Data Type* | *Explanation*                                                |
+| -------------------------------- | ----------- | ------------------------------------------------------------ |
+| appId (?)          | String        | Apollo appId, default to be "APOLLO_SHARDINGSPHERE"                                |
+| env (?)            | String        | Apollo env, default to be "DEV"                                                    |
+| clusterName (?)    | String        | Apollo clusterName, default to be "default"                                        |
+| administrator (?)  | String        | Apollo administrator, default to be ""                                             |
+| token (?)          | String        | Apollo token, default to be ""                                                     |
+| portalUrl (?)      | String        | Apollo portalUrl, default to be ""                                                 |
+| connectTimeout (?) | int           | Apollo connectTimeout, default to be 1000 milliseconds                             |
+| readTimeout (?)    | int           | Apollo readTimeout, default to be 5000 milliseconds                                |
+
+If type of center is `nacos` with config-center&registry-center, properties could be set with the follow options:
+
+| *Name*                           | *Data Type* | *Explanation*                                                |
+| -------------------------------- | ----------- | ------------------------------------------------------------ |
+| group (?)          | String        | Nacos group, "SHARDING_SPHERE_DEFAULT_GROUP" in default                  |
+| timeout (?)        | long          | Nacos timeout, default to be 3000 milliseconds                           |

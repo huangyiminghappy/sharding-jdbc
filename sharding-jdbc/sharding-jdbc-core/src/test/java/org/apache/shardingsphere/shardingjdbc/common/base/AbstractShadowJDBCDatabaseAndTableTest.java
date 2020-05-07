@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.shardingsphere.api.config.shadow.ShadowRuleConfiguration;
 import org.apache.shardingsphere.core.rule.ShadowRule;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShadowDataSource;
-import org.apache.shardingsphere.underlying.common.constant.properties.PropertiesConstant;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
 import org.apache.shardingsphere.underlying.common.database.type.DatabaseTypes;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -48,7 +48,7 @@ public abstract class AbstractShadowJDBCDatabaseAndTableTest extends AbstractSQL
     
     private static Properties createProperties() {
         Properties result = new Properties();
-        result.put(PropertiesConstant.SQL_SHOW.getKey(), true);
+        result.put(ConfigurationPropertyKey.SQL_SHOW.getKey(), true);
         return result;
     }
     
@@ -60,11 +60,11 @@ public abstract class AbstractShadowJDBCDatabaseAndTableTest extends AbstractSQL
     }
     
     protected Connection getShadowConnection() throws SQLException {
-        return shadowDataSource.getRuntimeContext().getShadowDataSource().getConnection();
+        return shadowDataSource.getShadowDataSource().getConnection();
     }
     
     protected Connection getActualConnection() throws SQLException {
-        return shadowDataSource.getRuntimeContext().getActualDataSource().getConnection();
+        return shadowDataSource.getActualDataSource().getConnection();
     }
     
     protected Connection getConnection() throws SQLException {
@@ -73,7 +73,7 @@ public abstract class AbstractShadowJDBCDatabaseAndTableTest extends AbstractSQL
     
     @AfterClass
     public static void close() throws Exception {
-        if (shadowDataSource == null) {
+        if (null == shadowDataSource) {
             return;
         }
         shadowDataSource.close();

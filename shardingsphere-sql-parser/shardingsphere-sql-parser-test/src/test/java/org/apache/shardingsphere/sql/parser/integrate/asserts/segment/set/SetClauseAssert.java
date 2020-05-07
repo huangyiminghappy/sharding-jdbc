@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.SQLCaseAssertContext;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.SQLSegmentAssert;
 import org.apache.shardingsphere.sql.parser.integrate.asserts.segment.assignment.AssignmentAssert;
-import org.apache.shardingsphere.sql.parser.integrate.jaxb.domain.segment.impl.set.ExpectedSetClause;
+import org.apache.shardingsphere.sql.parser.integrate.jaxb.cases.domain.segment.impl.set.ExpectedSetClause;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.assignment.AssignmentSegment;
 import org.apache.shardingsphere.sql.parser.sql.segment.dml.assignment.SetAssignmentSegment;
 
@@ -44,7 +44,7 @@ public final class SetClauseAssert {
      * @param expected expected set clause
      */
     public static void assertIs(final SQLCaseAssertContext assertContext, final SetAssignmentSegment actual, final ExpectedSetClause expected) {
-        assertNotNull(assertContext.getText("Assignments should existed."), expected);
+        assertNotNull(assertContext.getText("Assignments should exist."), expected);
         assertThat(assertContext.getText("Assignments size assertion error: "), actual.getAssignments().size(), is(expected.getAssignments().size()));
         int count = 0;
         for (AssignmentSegment each : actual.getAssignments()) {

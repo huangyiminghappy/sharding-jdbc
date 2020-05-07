@@ -9,8 +9,8 @@ chapter = true
 ## 提交issue
 
  - 在提交issue之前，请经过充分的搜索，确定该issue不是通过简单的检索即可以解决的问题。
- - 查看[issue列表](https://github.com/apache/incubator-shardingsphere/issues)，确定该issue不是一个重复的问题。
- - [新建](https://github.com/apache/incubator-shardingsphere/issues/new/choose)一个issue并选择您的issue类型。
+ - 查看[issue列表](https://github.com/apache/shardingsphere/issues)，确定该issue不是一个重复的问题。
+ - [新建](https://github.com/apache/shardingsphere/issues/new/choose)一个issue并选择您的issue类型。
  - 使用一个清晰并有描述性的标题来定义issue。
  - 根据模板填写必要信息。
  - 在提交issue之后，对该issue分配合适的标签。如：bug，enhancement，discussion等。
@@ -23,7 +23,7 @@ chapter = true
  - 从shardingsphere的repo上fork一个分支到您自己的repo来开始工作，并设置upstream为shardingsphere的repo。
 
 ```shell
-git remote add upstream https://github.com/apache/incubator-shardingsphere.git
+git remote add upstream https://github.com/apache/shardingsphere.git
 ```
 
 ### 选择issue
@@ -57,9 +57,19 @@ git push origin issueNo
 
 ### 提交PR
 
- - 发送一个pull request到ShardingSphere的master分支，请不要提交pull request至master分支中。
+ - 发送一个pull request到ShardingSphere的master分支。
  - 接着导师做CodeReview，然后他会与您讨论一些细节（包括设计，实现，性能等）。当导师对本次修改满意后，会将提交合并到当前开发版本的分支中。
  - 最后，恭喜您已经成为了ShardingSphere的官方贡献者！
+
+### 删除分支
+
+ - 在导师将pull request合并到ShardingSphere的master分支中之后，您就可以将远程的分支（origin/issueNo）及与远程分支（origin/issueNo）关联的本地分支（issueNo）删除。
+ 
+```shell
+git checkout master
+git branch -d issueNo
+git push origin --delete issueNo
+```
 
 ### 注意
 

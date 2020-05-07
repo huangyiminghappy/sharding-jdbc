@@ -17,13 +17,9 @@
 
 package org.apache.shardingsphere.transaction.xa.jta.datasource.properties.dialect;
 
-import org.apache.shardingsphere.underlying.common.config.DatabaseAccessConfiguration;
-import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Properties;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -32,16 +28,6 @@ public final class OracleXADataSourceDefinitionTest {
     
     @Test
     public void assertGetXADriverClassName() {
-        assertThat(new OracleXADataSourceDefinition().getXADriverClassName(), CoreMatchers.<Collection<String>>is(Collections.singletonList("oracle.jdbc.xa.client.OracleXADataSource")));
-    }
-    
-    @Test
-    public void assertGetXAProperties() {
-        Properties actual = new OracleXADataSourceDefinition().getXAProperties(new DatabaseAccessConfiguration("jdbc:oracle:thin:@//db.oracle:9999/test_db", "root", "root"));
-        assertThat(actual.getProperty("user"), is("root"));
-        assertThat(actual.getProperty("password"), is("root"));
-        assertThat(actual.getProperty("serverName"), is("db.oracle"));
-        assertThat(actual.getProperty("portNumber"), is("9999"));
-        assertThat(actual.getProperty("databaseName"), is("test_db"));
+        assertThat(new OracleXADataSourceDefinition().getXADriverClassName(), is(Collections.singletonList("oracle.jdbc.xa.client.OracleXADataSource")));
     }
 }

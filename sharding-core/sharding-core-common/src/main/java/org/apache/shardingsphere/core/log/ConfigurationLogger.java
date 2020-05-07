@@ -21,17 +21,20 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
+import org.apache.shardingsphere.api.config.shadow.ShadowRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.core.rule.Authentication;
 import org.apache.shardingsphere.core.yaml.representer.processor.ShardingTupleProcessorFactory;
 import org.apache.shardingsphere.core.yaml.swapper.AuthenticationYamlSwapper;
 import org.apache.shardingsphere.core.yaml.swapper.MasterSlaveRuleConfigurationYamlSwapper;
+import org.apache.shardingsphere.core.yaml.swapper.ShadowRuleConfigurationYamlSwapper;
 import org.apache.shardingsphere.core.yaml.swapper.ShardingRuleConfigurationYamlSwapper;
 import org.apache.shardingsphere.encrypt.api.EncryptRuleConfiguration;
 import org.apache.shardingsphere.encrypt.yaml.swapper.EncryptRuleConfigurationYamlSwapper;
 import org.apache.shardingsphere.underlying.common.config.RuleConfiguration;
 import org.apache.shardingsphere.underlying.common.yaml.engine.YamlEngine;
 
+import java.util.Collection;
 import java.util.Properties;
 
 /**
@@ -40,6 +43,17 @@ import java.util.Properties;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 @Slf4j
 public final class ConfigurationLogger {
+    
+    /**
+     * Log rule configuration.
+     *
+     * @param ruleConfigurations rule configurations
+     */
+    public static void log(final Collection<RuleConfiguration> ruleConfigurations) {
+        for (RuleConfiguration each : ruleConfigurations) {
+            log(each);
+        }
+    }
     
     /**
      * Log rule configuration.
@@ -56,6 +70,8 @@ public final class ConfigurationLogger {
             log((MasterSlaveRuleConfiguration) ruleConfiguration);
         } else if (ruleConfiguration instanceof EncryptRuleConfiguration) {
             log((EncryptRuleConfiguration) ruleConfiguration);
+        } else if (ruleConfiguration instanceof ShadowRuleConfiguration) {
+            log((ShadowRuleConfiguration) ruleConfiguration);
         }
     }
     
@@ -75,6 +91,12 @@ public final class ConfigurationLogger {
     private static void log(final EncryptRuleConfiguration encryptRuleConfiguration) {
         if (null != encryptRuleConfiguration) {
             log(encryptRuleConfiguration.getClass().getSimpleName(), YamlEngine.marshal(new EncryptRuleConfigurationYamlSwapper().swap(encryptRuleConfiguration)));
+        }
+    }
+
+    private static void log(final ShadowRuleConfiguration shadowRuleConfiguration) {
+        if (null != shadowRuleConfiguration) {
+            log(shadowRuleConfiguration.getClass().getSimpleName(), YamlEngine.marshal(new ShadowRuleConfigurationYamlSwapper().swap(shadowRuleConfiguration)));
         }
     }
     

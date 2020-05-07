@@ -22,32 +22,35 @@ import lombok.Getter;
 import org.apache.shardingsphere.core.rule.ShadowRule;
 import org.apache.shardingsphere.shardingjdbc.jdbc.adapter.AbstractDataSourceAdapter;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.connection.ShadowConnection;
-import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.ShadowRuntimeContext;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.Properties;
 
 /**
  * Shadow data source.
  */
 @Getter
-public class ShadowDataSource extends AbstractDataSourceAdapter {
+public final class ShadowDataSource extends AbstractDataSourceAdapter {
     
     private static final String ACTUAL_DATABASE = "actual";
     
     private static final String SHADOW_DATABASE = "shadow";
     
-    private final ShadowRuntimeContext runtimeContext;
+    private final DataSource actualDataSource;
+    
+    private final DataSource shadowDataSource;
     
     public ShadowDataSource(final DataSource actualDataSource, final DataSource shadowDataSource, final ShadowRule shadowRule, final Properties props) throws SQLException {
-        super(ImmutableMap.of(ACTUAL_DATABASE, actualDataSource, SHADOW_DATABASE, shadowDataSource));
-        runtimeContext = new ShadowRuntimeContext(actualDataSource, shadowDataSource, shadowRule, props, getDatabaseType());
+        super(ImmutableMap.of(ACTUAL_DATABASE, actualDataSource, SHADOW_DATABASE, shadowDataSource), Collections.singletonList(shadowRule), props);
+        this.actualDataSource = actualDataSource;
+        this.shadowDataSource = shadowDataSource;
     }
     
     @Override
-    public final Connection getConnection() throws SQLException {
-        return new ShadowConnection(getDataSourceMap().get(ACTUAL_DATABASE).getConnection(), getDataSourceMap().get(SHADOW_DATABASE).getConnection(), runtimeContext);
+    public Connection getConnection() throws SQLException {
+        return new ShadowConnection(getDataSourceMap().get(ACTUAL_DATABASE).getConnection(), getDataSourceMap().get(SHADOW_DATABASE).getConnection(), getRuntimeContext());
     }
 }

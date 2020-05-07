@@ -45,17 +45,20 @@ shardingRule:
   tables:
     config:
       actualDataNodes: db_ms_${0..1}.t_config
-    
     t_order: 
       actualDataNodes: db_ms_${0..1}.t_order_${0..1}
       databaseStrategy: 
         standard:
           shardingColumn: user_id
-          preciseAlgorithmClassName: org.apache.shardingsphere.shardingjdbc.orchestration.api.yaml.fixture.SingleAlgorithm
+          shardingAlgorithm:
+            type: STANDARD_TEST
       tableStrategy: 
-        inline:
+        standard:
           shardingColumn: order_id
-          algorithmExpression: t_order_${order_id % 2}
+          shardingAlgorithm:
+            type: INLINE
+            props:
+              algorithm.expression: t_order_${order_id % 2}
       keyGenerator:
         type: INCREMENT
         column: order_id
@@ -64,12 +67,15 @@ shardingRule:
       databaseStrategy: 
         standard:
           shardingColumn: order_id
-          preciseAlgorithmClassName: org.apache.shardingsphere.shardingjdbc.orchestration.api.yaml.fixture.SingleAlgorithm
+          shardingAlgorithm:
+            type: STANDARD_TEST
       tableStrategy: 
-        inline:
+        standard:
           shardingColumn: id
-          algorithmExpression: t_order_item_${id % 2}
-  
+          shardingAlgorithm:
+            type: INLINE
+            props:
+              algorithm.expression: t_order_item_${id % 2}
   bindingTables:
     - t_order,t_order_item
   defaultDatabaseStrategy:
@@ -77,19 +83,20 @@ shardingRule:
   defaultTableStrategy:
     complex:
       shardingColumns: id, order_id
-      algorithmClassName: org.apache.shardingsphere.shardingjdbc.orchestration.api.yaml.fixture.MultiAlgorithm
-  
-  masterSlaveRules:
-    db_ms_0:
-      masterDataSourceName: db0_master
-      slaveDataSourceNames:
-        - db0_slave
-      loadBalanceAlgorithmType: RANDOM
-    db_ms_1:
-      masterDataSourceName: db1_master
-      slaveDataSourceNames:
-        - db1_slave
-      loadBalanceAlgorithmType: ROUND_ROBIN
+      shardingAlgorithm:
+        type: COMPLEX_TEST
+
+masterSlaveRules:
+  db_ms_0:
+    masterDataSourceName: db0_master
+    slaveDataSourceNames:
+      - db0_slave
+    loadBalanceAlgorithmType: RANDOM
+  db_ms_1:
+    masterDataSourceName: db1_master
+    slaveDataSourceNames:
+      - db1_slave
+    loadBalanceAlgorithmType: ROUND_ROBIN
 
 orchestration:
   test_sharding_ms_registry_name:
@@ -108,6 +115,17 @@ orchestration:
     instanceType: FirstTestConfigCenter
     serverLists: localhost:3181
     namespace: test_sharding_ms_config
+    props:
+      overwrite: true
+      retryIntervalMilliseconds: 10
+      timeToLiveSeconds: 10
+      maxRetries: 10
+      operationTimeoutMilliseconds: 10
+  test_sharding_ms_metadata_name:
+    orchestrationType: metadata_center
+    instanceType: FirstTestMetaDataCenter
+    serverLists: localhost:3181
+    namespace: test_sharding_ms_metadata
     props:
       overwrite: true
       retryIntervalMilliseconds: 10

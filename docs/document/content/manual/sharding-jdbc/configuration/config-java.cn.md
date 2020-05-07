@@ -1,5 +1,4 @@
 +++
-toc = true
 title = "Java配置"
 weight = 1
 +++
@@ -8,7 +7,7 @@ weight = 1
 
 ### 数据分片
 
-以下配置中DataSourceUtil的实现为[DataSourceUtil](https://github.com/geomonlin/incubator-shardingsphere-example/blob/4.0.0-RC2/example-core/example-api/src/main/java/org/apache/shardingsphere/example/core/api/DataSourceUtil.java)，ModuloShardingTableAlgorithm 类需用户自定义实现，详细例子 [ModuloShardingTableAlgorithm](https://github.com/geomonlin/incubator-shardingsphere-example/tree/dev/example-core/config-utility/src/main/java/org/apache/shardingsphere/example/algorithm) 
+以下配置中DataSourceUtil的实现为[DataSourceUtil](https://github.com/geomonlin/incubator-shardingsphere-example/blob/4.0.0-RC2/example-core/example-api/src/main/java/org/apache/shardingsphere/example/core/api/DataSourceUtil.java)，ModuloShardingTableAlgorithm 类需用户自定义实现，详细例子 [ModuloShardingTableAlgorithm](https://github.com/geomonlin/shardingsphere-example/tree/dev/example-core/config-utility/src/main/java/org/apache/shardingsphere/example/algorithm) 
 
 ```java
      DataSource getShardingDataSource() throws SQLException {
@@ -190,14 +189,22 @@ weight = 1
         // OrchestrationShardingDataSourceFactory 可替换成 OrchestrationMasterSlaveDataSourceFactory 或 OrchestrationEncryptDataSourceFactory
         return OrchestrationShardingDataSourceFactory.createDataSource(
                 createDataSourceMap(), createShardingRuleConfig(), new HashMap<String, Object>(), new Properties(), 
-                new OrchestrationConfiguration("orchestration-sharding-data-source", getRegistryCenterConfiguration(), false));
+                new OrchestrationConfiguration(createCenterConfigurationMap()));
     }
-    
-    private RegistryCenterConfiguration getRegistryCenterConfiguration() {
-        RegistryCenterConfiguration regConfig = new RegistryCenterConfiguration("zookeeper");//注册中心的类型可以是Zookeeper，Etcd等
-        regConfig.setServerLists("localhost:2181");
-        regConfig.setNamespace("sharding-sphere-orchestration");
-        return regConfig;
+    private Map<String, CenterConfiguration> createCenterConfigurationMap() {
+        Map<String, CenterConfiguration> instanceConfigurationMap = new HashMap<String, CenterConfiguration>();
+        CenterConfiguration config = createCenterConfiguration();
+        instanceConfigurationMap.put("orchestration-sharding-data-source", config);
+        return instanceConfigurationMap;
+    }
+    private CenterConfiguration createCenterConfiguration() {
+        Properties properties = new Properties();
+        properties.setProperty("overwrite", overwrite);
+        CenterConfiguration result = new CenterConfiguration("zookeeper", properties);
+        result.setServerLists("localhost:2181");
+        result.setNamespace("sharding-sphere-orchestration");
+        result.setOrchestrationType("registry_center,config_center");
+        return result;
     }
 ```
 
@@ -288,42 +295,20 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | *名称*             | *数据类型*                    | *说明*                                                                         |
 | ----------------- | ---------------------------- | ------------------------------------------------------------------------------ |
 | column            | String                       | 自增列名称                                                                      |
-| type              | String                       | 自增列值生成器类型，可自定义或选择内置类型：SNOWFLAKE/UUID/LEAF_SEGMENT/LEAF_SNOWFLAKE|
-| props             | Properties                   | 自增列值生成器的相关属性配置                                                      |  
+| type              | String                       | 自增列值生成器类型，可自定义或选择内置类型：SNOWFLAKE/UUID |
+| props             | Properties                   | 自增列值生成器的相关属性配置                                                      |
 
-#### PropertiesConstant
+#### Properties
 
 属性配置项，可以为以下自增列值生成器的属性。
 
 ##### SNOWFLAKE
-  
+
 | *名称*                                              | *数据类型*  | *说明*                                                                                                   |
 | --------------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------- |
 | worker.id (?)                                        | long       | 工作机器唯一id，默认为0                                                                                  |
 | max.tolerate.time.difference.milliseconds (?)        | long       | 最大容忍时钟回退时间，单位：毫秒。默认为10毫秒                                                               |
 | max.vibration.offset (?)                             | int        | 最大抖动上限值，范围[0, 4096)，默认为1。注：若使用此算法生成值作分片值，建议配置此属性。此算法在不同毫秒内所生成的key取模2^n (2^n一般为分库或分表数) 之后结果总为0或1。为防止上述分片问题，建议将此属性值配置为(2^n)-1 |
-  
-##### LEAF_SEGMENT
-  
-| *名称*                                | *数据类型*      | *说明*                                                                               |
-| ------------------------------------ | --------------  | ------------------------------------------------------------------------------------ |
-| server.list                          | String          | 连接注册中心服务器的列表，包括IP地址和端口号，多个地址用逗号分隔。如: host1:2181,host2:2181 |
-| leaf.key                             | String          | 用于标识leaf_segment所对应表里面的最大号段id                                           |
-| leaf.segment.id.initial.value (?)     | long            | 号段id初始值，默认为1                                                                 |
-| leaf.segment.step (?)                 | long            | 每次分配的号段步长，默认为10000                                                        |
-| registry.center.digest (?)            | String          | 连接注册中心的权限令牌。缺省为不需要权限验证                                             |
-| registry.center.type (?)              | String          | 注册中心类型，默认为`zookeeper`                                                         |
-  
-##### LEAF_SNOWFLAKE
-  
-| *名称*                                            | *数据类型*     | *说明*                                                                                                |
-| ------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------- |
-| server.list                                       | String        | 连接注册中心服务器的列表，包括IP地址和端口号，多个地址用逗号分隔。如: host1:2181,host2:2181                   |
-| service.id                                        | String        | leaf_snowflake位于注册中心上的服务标识                                                                   |
-| max.tolerate.time.difference.milliseconds (?)      | long          | 最大允许的本机与注册中心的时间误差毫秒数，默认为10000毫秒。如果时间误差超过配置时间则作业启动时将抛异常         |
-| registry.center.digest (?)                         | String        | 连接注册中心的权限令牌。缺省为不需要权限验证                                                              |
-| registry.center.type (?)                           | String        | 注册中心类型，默认为`zookeeper`                                                                           |
-| max.vibration.offset (?)                           | int           | 最大抖动上限，范围[0, 4096)，默认为1。注：若使用此算法生成值作分片值，建议配置此属性。此算法在不同毫秒内所生成的key取模2^n (2^n一般为分库或分表数) 之后结果总为0或1。为防止上述分片问题，建议将此属性值配置为(2^n)-1 |
 
 #### EncryptRuleConfiguration
 
@@ -337,7 +322,7 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | *名称*               |*数据类型*                    | *说明*                                                                          |
 | ------------------- | ---------------------------- | ------------------------------------------------------------------------------ |
 | type                | String                       | 加解密器类型，可自定义或选择内置类型：MD5/AES                                       |
-| properties          | Properties                   | 属性配置, 注意：使用AES加密器，需要配置AES加密器的KEY属性：aes.key.value              | 
+| properties          | Properties                   | 属性配置, 注意：使用AES加密器，需要配置AES加密器的KEY属性：aes.key.value              |
 
 #### EncryptTableRuleConfiguration
 
@@ -354,7 +339,7 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | assistedQueryColumn| String                       | 辅助查询字段，针对ShardingQueryAssistedEncryptor类型的加解密器进行辅助查询            |
 | encryptor          | String                       | 加解密器名字                                                                      |
 
-#### PropertiesConstant
+#### Properties
 
 属性配置项，可以为以下属性。
 
@@ -365,6 +350,7 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | max.connections.size.per.query (?)| int       | 每个物理数据库为每次查询分配的最大连接数量。默认值: 1   |
 | check.table.metadata.enabled (?)  | boolean   | 是否在启动时检查分表元数据一致性，默认值: false        |
 | query.with.cipher.column (?)      | boolean   | 当存在明文列时，是否使用密文列查询，默认值: true        |
+| allow.range.query.with.inline.sharding (?)    | boolean   | 当使用inline分表策略时，是否允许范围查询，默认值: false        |
 
 ### 读写分离
 
@@ -389,7 +375,7 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | slaveDataSourceNames     | Collection\<String\>            | 从库数据源名称列表 |
 | loadBalanceAlgorithm (?) | MasterSlaveLoadBalanceAlgorithm | 从库负载均衡算法   |
 
-#### PropertiesConstant
+#### Properties
 
 属性配置项，可以为以下属性。
 
@@ -417,7 +403,7 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 | encryptors          | Map<String, EncryptorRuleConfiguration>     | 加解密器配置列表，可自定义或选择内置类型：MD5/AES                                    |
 | tables              | Map<String, EncryptTableRuleConfiguration>  | 加密表配置列表                      |
 
-#### PropertiesConstant
+#### Properties
 
 属性配置项，可以为以下属性。
 
@@ -467,20 +453,58 @@ ShardingStrategyConfiguration的实现类，用于配置不分片的策略。
 
 | *名称*           | *数据类型*                   | *说明*                                                     |
 | --------------- | --------------------------- | ---------------------------------------------------------- |
-| name            | String                      | 治理实例名称                                             |
-| overwrite       | boolean                     | 本地配置是否覆盖注册中心配置，如果可覆盖，每次启动都以本地配置为准 |
-| regCenterConfig | RegistryCenterConfiguration | 注册中心配置                                                |
+| instanceConfigurationMap | Map\<String, CenterConfiguration\>  | 配置中心和注册中心的配置map，key为名称，value为配置或注册中心   |
 
-#### RegistryCenterConfiguration
+#### CenterConfiguration
 
-用于配置注册中心。
+用于配置配置中心或注册中心。
 
 | *名称*                             | *数据类型* | *说明*                                                                               |
 | --------------------------------- | ---------- | ----------------------------------------------------------------------------------- |
-| serverLists                       | String     | 连接注册中心服务器的列表，包括IP地址和端口号，多个地址用逗号分隔。如: host1:2181,host2:2181 |
-| namespace (?)                     | String     | 注册中心的命名空间                                                                    |
+| type                              | String     | 配置中心或注册中心的实例类型，例如zookeeper或etcd、apollo、nacos                                       |
+| properties                        | String     | 配置本实例需要的其他参数，例如zookeeper的连接参数等，具体参考properties配置                         |
+| orchestrationType                 | String     | 配置中心或注册中心的类型，例如config-center或registry-center，如果都是，可以"setOrchestrationType("registry_center,config_center");"              |
+| serverLists                       | String     | 连接配置中心或注册中心服务器的列表，包括IP地址和端口号，多个地址用逗号分隔。如: host1:2181,host2:2181 |
+| namespace (?)                     | String     | 配置中心或注册中心的命名空间                                                                     |
+
+其中properties的通用配置如下：
+
+| *名称*           | *数据类型*                   | *说明*                                                     |
+| --------------- | --------------------------- | ---------------------------------------------------------- |
+| overwrite                         | boolean    | 本地配置是否覆盖注册中心配置，如果可覆盖，每次启动都以本地配置为准                         |
+
+如果采用了zookeeper作为配置中心或（和）注册中心，那么properties还可以配置：
+
+| *名称*           | *数据类型*                   | *说明*                                                     |
+| --------------- | --------------------------- | ---------------------------------------------------------- |
 | digest (?)                        | String     | 连接注册中心的权限令牌。缺省为不需要权限验证                                             |
 | operationTimeoutMilliseconds (?)  | int        | 操作超时的毫秒数，默认500毫秒                                                          |
 | maxRetries (?)                    | int        | 连接失败后的最大重试次数，默认3次                                                       |
 | retryIntervalMilliseconds (?)     | int        | 重试间隔毫秒数，默认500毫秒                                                            |
 | timeToLiveSeconds (?)             | int        | 临时节点存活秒数，默认60秒                                                             |
+
+如果采用了etcd作为配置中心或（和）注册中心，那么properties还可以配置：
+
+| *名称*           | *数据类型*                   | *说明*                                                     |
+| --------------- | --------------------------- | ---------------------------------------------------------- |
+| timeToLiveSeconds (?)             | long        | TTL时间，单位为秒，默认30秒                                     |
+
+如果采用了apollo作为配置中心，那么properties还可以配置：
+
+| *名称*           | *数据类型*                   | *说明*                                                     |
+| --------------- | --------------------------- | ---------------------------------------------------------- |
+| appId (?)          | String        | apollo appId，默认值为"APOLLO_SHARDINGSPHERE"                               |
+| env (?)            | String        | apollo env，默认值为"DEV"                                                   |
+| clusterName (?)    | String        | apollo clusterName，默认值为"default"                                       |
+| administrator (?)  | String        | apollo administrator，默认值为""                                            |
+| token (?)          | String        | apollo token，默认值为""                                                    |
+| portalUrl (?)      | String        | apollo portalUrl，默认值为""                                                |
+| connectTimeout (?) | int           | apollo connectTimeout，默认值为1000毫秒                                      |
+| readTimeout (?)    | int           | apollo readTimeout，默认值为5000毫秒                                         |
+
+如果采用了nacos作为配置中心，那么properties还可以配置：
+
+| *名称*           | *数据类型*                   | *说明*                                                     |
+| --------------- | --------------------------- | ---------------------------------------------------------- |
+| group (?)          | String        | nacos group配置，默认值为"SHARDING_SPHERE_DEFAULT_GROUP"                     |
+| timeout (?)        | long          | nacos 获取数据超时时间，单位为毫秒，默认值为3000毫秒                            |

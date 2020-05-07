@@ -18,8 +18,8 @@
 package org.apache.shardingsphere.dbtest.cases.dataset;
 
 import lombok.Getter;
-import org.apache.shardingsphere.core.rule.DataNode;
-import org.apache.shardingsphere.underlying.common.config.inline.InlineExpressionParser;
+import org.apache.shardingsphere.underlying.common.datanode.DataNode;
+import org.apache.shardingsphere.core.strategy.algorithm.sharding.inline.InlineExpressionParser;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetMetadata;
 import org.apache.shardingsphere.dbtest.cases.dataset.row.DataSetRow;
 

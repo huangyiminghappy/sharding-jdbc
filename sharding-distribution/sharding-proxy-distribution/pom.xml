@@ -24,6 +24,7 @@
         <version>5.0.0-RC1-SNAPSHOT</version>
     </parent>
     <artifactId>sharding-proxy-distribution</artifactId>
+    <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     
     <dependencies>
@@ -35,7 +36,7 @@
         
         <dependency>
             <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP-java7</artifactId>
+            <artifactId>HikariCP</artifactId>
             <scope>compile</scope>
         </dependency>
         

@@ -17,14 +17,10 @@
 
 package org.apache.shardingsphere.transaction.xa.jta.datasource.properties.dialect;
 
-import com.google.common.base.Optional;
-import org.apache.shardingsphere.underlying.common.config.DatabaseAccessConfiguration;
-import org.apache.shardingsphere.underlying.common.database.metadata.dialect.MariaDBDataSourceMetaData;
 import org.apache.shardingsphere.transaction.xa.jta.datasource.properties.XADataSourceDefinition;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Properties;
 
 /**
  * XA data source definition for MariaDB.
@@ -39,18 +35,5 @@ public final class MariaDBXADataSourceDefinition implements XADataSourceDefiniti
     @Override
     public Collection<String> getXADriverClassName() {
         return Collections.singletonList("org.mariadb.jdbc.MariaDbDataSource");
-    }
-    
-    @Override
-    public Properties getXAProperties(final DatabaseAccessConfiguration databaseAccessConfiguration) {
-        Properties result = new Properties();
-        MariaDBDataSourceMetaData dataSourceMetaData = new MariaDBDataSourceMetaData(databaseAccessConfiguration.getUrl());
-        result.setProperty("user", databaseAccessConfiguration.getUsername());
-        result.setProperty("password", Optional.fromNullable(databaseAccessConfiguration.getPassword()).or(""));
-        result.setProperty("url", databaseAccessConfiguration.getUrl());
-        result.setProperty("ServerName", dataSourceMetaData.getHostName());
-        result.setProperty("port", String.valueOf(dataSourceMetaData.getPort()));
-        result.setProperty("DatabaseName", dataSourceMetaData.getCatalog());
-        return result;
     }
 }

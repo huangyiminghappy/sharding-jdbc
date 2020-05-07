@@ -17,21 +17,22 @@
 
 package org.apache.shardingsphere.ui.servcie.impl;
 
+import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
+import org.apache.shardingsphere.orchestration.core.registrycenter.RegistryCenterNodeStatus;
 import org.apache.shardingsphere.ui.common.dto.InstanceDTO;
 import org.apache.shardingsphere.ui.common.dto.SlaveDataSourceDTO;
 import org.apache.shardingsphere.ui.servcie.OrchestrationService;
 import org.apache.shardingsphere.ui.servcie.RegistryCenterService;
 import org.apache.shardingsphere.ui.servcie.ShardingSchemaService;
 import org.apache.shardingsphere.ui.util.ConfigurationYamlConverter;
-import org.apache.shardingsphere.api.config.masterslave.MasterSlaveRuleConfiguration;
-import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
-import org.apache.shardingsphere.orchestration.internal.registry.state.node.StateNodeStatus;
+import org.apache.shardingsphere.underlying.common.config.RuleConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of orchestration operation service.
@@ -51,14 +52,14 @@ public final class OrchestrationServiceImpl implements OrchestrationService {
         Collection<InstanceDTO> result = new ArrayList<>(instanceIds.size());
         for (String instanceId : instanceIds) {
             String value = registryCenterService.getActivatedRegistryCenter().get(registryCenterService.getActivatedStateNode().getInstancesNodeFullPath(instanceId));
-            result.add(new InstanceDTO(instanceId, !StateNodeStatus.DISABLED.toString().equalsIgnoreCase(value)));
+            result.add(new InstanceDTO(instanceId, !RegistryCenterNodeStatus.DISABLED.toString().equalsIgnoreCase(value)));
         }
         return result;
     }
     
     @Override
     public void updateInstanceStatus(final String instanceId, final boolean enabled) {
-        String value = enabled ? "" : StateNodeStatus.DISABLED.toString();
+        String value = enabled ? "" : RegistryCenterNodeStatus.DISABLED.toString();
         registryCenterService.getActivatedRegistryCenter().persist(registryCenterService.getActivatedStateNode().getInstancesNodeFullPath(instanceId), value);
     }
     
@@ -80,7 +81,7 @@ public final class OrchestrationServiceImpl implements OrchestrationService {
     
     @Override
     public void updateSlaveDataSourceStatus(final String schemaNames, final String slaveDataSourceName, final boolean enabled) {
-        String value = enabled ? "" : StateNodeStatus.DISABLED.toString();
+        String value = enabled ? "" : RegistryCenterNodeStatus.DISABLED.toString();
         registryCenterService.getActivatedRegistryCenter().persist(registryCenterService.getActivatedStateNode().getDataSourcesNodeFullPath(schemaNames + "." + slaveDataSourceName), value);
     }
     
@@ -90,8 +91,9 @@ public final class OrchestrationServiceImpl implements OrchestrationService {
     }
     
     private void handleShardingRuleConfiguration(final Collection<SlaveDataSourceDTO> slaveDataSourceDTOS, final String configData, final String schemaName) {
-        ShardingRuleConfiguration shardingRuleConfiguration = ConfigurationYamlConverter.loadShardingRuleConfiguration(configData);
-        Collection<MasterSlaveRuleConfiguration> masterSlaveRuleConfigs = shardingRuleConfiguration.getMasterSlaveRuleConfigs();
+        Collection<RuleConfiguration> configurations = ConfigurationYamlConverter.loadRuleConfigurations(configData);
+        Collection<MasterSlaveRuleConfiguration> masterSlaveRuleConfigs = configurations.stream().filter(
+            config -> config instanceof MasterSlaveRuleConfiguration).map(config -> (MasterSlaveRuleConfiguration) config).collect(Collectors.toList());
         for (MasterSlaveRuleConfiguration masterSlaveRuleConfiguration : masterSlaveRuleConfigs) {
             addSlaveDataSource(slaveDataSourceDTOS, masterSlaveRuleConfiguration, schemaName);
         }
@@ -115,7 +117,7 @@ public final class OrchestrationServiceImpl implements OrchestrationService {
         List<String> schemaDataSourceNames = registryCenterService.getActivatedRegistryCenter().getChildrenKeys(registryCenterService.getActivatedStateNode().getDataSourcesNodeFullRootPath());
         for (String schemaDataSourceName : schemaDataSourceNames) {
             String value = registryCenterService.getActivatedRegistryCenter().get(registryCenterService.getActivatedStateNode().getDataSourcesNodeFullPath(schemaDataSourceName));
-            if (StateNodeStatus.DISABLED.toString().equalsIgnoreCase(value)) {
+            if (RegistryCenterNodeStatus.DISABLED.toString().equalsIgnoreCase(value)) {
                 result.add(schemaDataSourceName);
             }
         }

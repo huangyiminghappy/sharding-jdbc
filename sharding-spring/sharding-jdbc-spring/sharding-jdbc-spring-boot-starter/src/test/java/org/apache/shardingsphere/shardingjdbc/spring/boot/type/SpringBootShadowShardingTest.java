@@ -17,14 +17,13 @@
 
 package org.apache.shardingsphere.shardingjdbc.spring.boot.type;
 
-import lombok.SneakyThrows;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.shardingsphere.core.rule.ShadowRule;
-import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.ShardingRuntimeContext;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.context.RuntimeContext;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShadowDataSource;
 import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource;
-import org.apache.shardingsphere.underlying.common.constant.properties.PropertiesConstant;
-import org.apache.shardingsphere.underlying.common.constant.properties.ShardingSphereProperties;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationProperties;
+import org.apache.shardingsphere.underlying.common.config.properties.ConfigurationPropertyKey;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -34,7 +33,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
-import java.lang.reflect.Field;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -51,7 +49,7 @@ public class SpringBootShadowShardingTest {
     
     @Test
     public void assertSqlShow() {
-        assertTrue(((ShadowDataSource) dataSource).getRuntimeContext().getProperties().<Boolean>getValue(PropertiesConstant.SQL_SHOW));
+        assertTrue(((ShadowDataSource) dataSource).getRuntimeContext().getProperties().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW));
     }
     
     @Test
@@ -62,40 +60,32 @@ public class SpringBootShadowShardingTest {
     }
     
     private void assertActualDatasource() {
-        DataSource dataSource = ((ShadowDataSource) this.dataSource).getRuntimeContext().getActualDataSource();
-        ShardingRuntimeContext runtimeContext = getFieldValue("runtimeContext", ShardingDataSource.class, dataSource);
+        DataSource dataSource = ((ShadowDataSource) this.dataSource).getActualDataSource();
+        RuntimeContext runtimeContext = ((ShardingDataSource) dataSource).getRuntimeContext();
         for (DataSource each : ((ShardingDataSource) dataSource).getDataSourceMap().values()) {
             assertThat(((BasicDataSource) each).getMaxTotal(), is(100));
         }
-        assertTrue(runtimeContext.getProperties().<Boolean>getValue(PropertiesConstant.SQL_SHOW));
-        ShardingSphereProperties properties = runtimeContext.getProperties();
-        assertTrue((Boolean) properties.getValue(PropertiesConstant.SQL_SHOW));
-        assertThat((Integer) properties.getValue(PropertiesConstant.EXECUTOR_SIZE), is(100));
+        assertTrue(runtimeContext.getProperties().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW));
+        ConfigurationProperties properties = runtimeContext.getProperties();
+        assertTrue(properties.getValue(ConfigurationPropertyKey.SQL_SHOW));
+        assertThat(properties.getValue(ConfigurationPropertyKey.EXECUTOR_SIZE), is(100));
     }
     
     private void assertShadowDatasource() {
-        DataSource dataSource = ((ShadowDataSource) this.dataSource).getRuntimeContext().getShadowDataSource();
-        ShardingRuntimeContext runtimeContext = getFieldValue("runtimeContext", ShardingDataSource.class, dataSource);
+        DataSource dataSource = ((ShadowDataSource) this.dataSource).getShadowDataSource();
+        RuntimeContext runtimeContext = ((ShardingDataSource) dataSource).getRuntimeContext();
         for (DataSource each : ((ShardingDataSource) dataSource).getDataSourceMap().values()) {
             assertThat(((BasicDataSource) each).getMaxTotal(), is(10));
         }
-        assertTrue(runtimeContext.getProperties().<Boolean>getValue(PropertiesConstant.SQL_SHOW));
-        ShardingSphereProperties properties = runtimeContext.getProperties();
-        assertTrue((Boolean) properties.getValue(PropertiesConstant.SQL_SHOW));
-        assertThat((Integer) properties.getValue(PropertiesConstant.EXECUTOR_SIZE), is(100));
+        assertTrue(runtimeContext.getProperties().<Boolean>getValue(ConfigurationPropertyKey.SQL_SHOW));
+        ConfigurationProperties properties = runtimeContext.getProperties();
+        assertTrue(properties.getValue(ConfigurationPropertyKey.SQL_SHOW));
+        assertThat(properties.getValue(ConfigurationPropertyKey.EXECUTOR_SIZE), is(100));
     }
     
     @Test
     public void assertWithShadowRule() {
-        ShadowRule shadowRule = ((ShadowDataSource) dataSource).getRuntimeContext().getRule();
+        ShadowRule shadowRule = (ShadowRule) ((ShadowDataSource) dataSource).getRuntimeContext().getRules().iterator().next();
         assertThat(shadowRule.getColumn(), is("shadow"));
-    }
-    
-    @SuppressWarnings("unchecked")
-    @SneakyThrows
-    private <T> T getFieldValue(final String fieldName, final Class<?> fieldClass, final Object target) {
-        Field field = fieldClass.getDeclaredField(fieldName);
-        field.setAccessible(true);
-        return (T) field.get(target);
     }
 }

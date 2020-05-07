@@ -22,15 +22,14 @@ import org.apache.shardingsphere.dbtest.cases.dataset.DataSet;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetColumn;
 import org.apache.shardingsphere.dbtest.cases.dataset.metadata.DataSetMetadata;
 import org.apache.shardingsphere.dbtest.cases.dataset.row.DataSetRow;
+import org.apache.shardingsphere.dbtest.cases.assertion.root.SQLCaseType;
 import org.apache.shardingsphere.dbtest.engine.SingleIT;
-import org.apache.shardingsphere.dbtest.env.DatabaseTypeEnvironment;
 import org.apache.shardingsphere.dbtest.env.EnvironmentPath;
 import org.apache.shardingsphere.dbtest.env.IntegrateTestEnvironment;
 import org.apache.shardingsphere.dbtest.env.dataset.DataSetEnvironmentManager;
 import org.apache.shardingsphere.dbtest.env.datasource.DataSourceUtil;
 import org.apache.shardingsphere.dbtest.env.schema.SchemaEnvironmentManager;
-import org.apache.shardingsphere.spi.database.type.DatabaseType;
-import org.apache.shardingsphere.test.sql.SQLCaseType;
+import org.apache.shardingsphere.underlying.common.database.type.DatabaseType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -57,9 +56,9 @@ import static org.junit.Assert.assertTrue;
 
 public abstract class BaseDQLIT extends SingleIT {
     
-    public BaseDQLIT(final String sqlCaseId, final String path, final DQLIntegrateTestCaseAssertion assertion, final String shardingRuleType,
-                     final DatabaseTypeEnvironment databaseTypeEnvironment, final SQLCaseType caseType) throws IOException, JAXBException, SQLException, ParseException {
-        super(sqlCaseId, path, assertion, shardingRuleType, databaseTypeEnvironment, caseType);
+    public BaseDQLIT(final String path, final DQLIntegrateTestCaseAssertion assertion, final String ruleType,
+                     final DatabaseType databaseType, final SQLCaseType caseType, final String sql) throws IOException, JAXBException, SQLException, ParseException {
+        super(path, assertion, ruleType, databaseType, caseType, sql);
     }
     
     @BeforeClass
@@ -90,8 +89,8 @@ public abstract class BaseDQLIT extends SingleIT {
         }
     }
     
-    private static Map<String, DataSource> createDataSourceMap(final DatabaseType databaseType, final String shardingRuleType) throws IOException, JAXBException {
-        Collection<String> dataSourceNames = SchemaEnvironmentManager.getDataSourceNames(shardingRuleType);
+    private static Map<String, DataSource> createDataSourceMap(final DatabaseType databaseType, final String ruleType) throws IOException, JAXBException {
+        Collection<String> dataSourceNames = SchemaEnvironmentManager.getDataSourceNames(ruleType);
         Map<String, DataSource> result = new HashMap<>(dataSourceNames.size(), 1);
         for (String each : dataSourceNames) {
             result.put(each, DataSourceUtil.createDataSource(databaseType, each));
@@ -108,11 +107,20 @@ public abstract class BaseDQLIT extends SingleIT {
         for (DataSetMetadata each : expected.getMetadataList()) {
             expectedColumns.addAll(each.getColumns());
         }
-        assertMetaData(resultSet.getMetaData(), expectedColumns);
-        assertRows(resultSet, expected.getRows());
+        try {
+            assertMetaData(resultSet.getMetaData(), expectedColumns);
+            assertRows(resultSet, expected.getRows());
+        } catch (final AssertionError ex) {
+            System.out.println(String.format("[ERROR] SQL::%s, Parameter::[%s], Expect::%s", getOriginalSQL(), getAssertion().getParameters(), getAssertion().getExpectedDataFile()));
+            throw ex;
+        }
     }
     
     private void assertMetaData(final ResultSetMetaData actualMetaData, final List<DataSetColumn> expectedColumns) throws SQLException {
+        // TODO fix shadow
+        if ("shadow".equals(getRuleType())) {
+            return;
+        }
         assertThat(actualMetaData.getColumnCount(), is(expectedColumns.size()));
         int index = 1;
         for (DataSetColumn each : expectedColumns) {
